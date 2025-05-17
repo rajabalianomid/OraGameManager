@@ -2,33 +2,60 @@
 
 namespace Ora.GameManaging.Server.Infrastructure
 {
-    public class NotificationManager
+    public class NotificationManager(IHubContext<GameHub> hubContext)
     {
-        private readonly IHubContext<GameHub> _hubContext;
-        public NotificationManager(IHubContext<GameHub> hubContext)
+
+        // Notify only selected players that it's their turn.
+        public Task SendTurnChangedToPlayers(List<string> playerConnectionIds, string message = "It's your turn!")
         {
-            _hubContext = hubContext;
+            var tasks = playerConnectionIds
+                .Select(id => hubContext.Clients.Client(id).SendAsync("TurnChanged", message))
+                .ToList();
+            return Task.WhenAll(tasks);
         }
 
-        public Task SendTurnChanged(string roomId, string playerName)
-            => _hubContext.Clients.Group(roomId).SendAsync("TurnChanged", playerName);
+        // Send timer ticks only to selected players.
+        public Task SendTimerTickToPlayers(List<string> playerConnectionIds, int seconds)
+        {
+            var tasks = playerConnectionIds
+                .Select(id => hubContext.Clients.Client(id).SendAsync("TimerTick", seconds))
+                .ToList();
+            return Task.WhenAll(tasks);
+        }
 
-        public Task SendTimerTick(string roomId, int seconds)
-            => _hubContext.Clients.Group(roomId).SendAsync("TimerTick", seconds);
-
-        public Task SendTurnTimeout(string roomId, string playerName)
-            => _hubContext.Clients.Group(roomId).SendAsync("TurnTimeout", playerName);
+        // Send turn timeout only to selected players.
+        public Task SendTurnTimeoutToPlayers(List<string> playerConnectionIds, string message = "Timeout!")
+        {
+            var tasks = playerConnectionIds
+                .Select(id => hubContext.Clients.Client(id).SendAsync("TurnTimeout", message))
+                .ToList();
+            return Task.WhenAll(tasks);
+        }
 
         public Task SendPlayerJoined(string roomId, string playerName)
-            => _hubContext.Clients.Group(roomId).SendAsync("PlayerJoined", playerName);
+            => hubContext.Clients.Group(roomId).SendAsync("PlayerJoined", playerName);
 
         public Task SendPlayerLeft(string roomId, string playerName)
-            => _hubContext.Clients.Group(roomId).SendAsync("PlayerLeft", playerName);
+            => hubContext.Clients.Group(roomId).SendAsync("PlayerLeft", playerName);
 
-        public Task SendTimerPaused(string roomId)
-            => _hubContext.Clients.Group(roomId).SendAsync("TimerPaused");
+        public Task SendTimerPausedToPlayers(List<string> playerConnectionIds)
+        {
+            var tasks = playerConnectionIds
+                .Select(id => hubContext.Clients.Client(id).SendAsync("TimerPaused"))
+                .ToList();
+            return Task.WhenAll(tasks);
+        }
 
-        public Task SendTimerResumed(string roomId)
-            => _hubContext.Clients.Group(roomId).SendAsync("TimerResumed");
+        public Task SendTimerResumedToPlayers(List<string> playerConnectionIds)
+        {
+            var tasks = playerConnectionIds
+                .Select(id => hubContext.Clients.Client(id).SendAsync("TimerResumed"))
+                .ToList();
+            return Task.WhenAll(tasks);
+        }
+
+        // Notify the entire group that group turn is finished.
+        public Task SendGroupTurnEnded(string roomId)
+            => hubContext.Clients.Group(roomId).SendAsync("GroupTurnEnded", "Group turn has finished!");
     }
 }

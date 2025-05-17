@@ -10,6 +10,7 @@ namespace Ora.GameManaging.Server.Models
     {
         public string ConnectionId { get; set; } = "";
         public string Name { get; set; } = "";
+        public string? Role { get; set; }
         public PlayerStatus Status { get; set; } = PlayerStatus.Online;
     }
 }

@@ -6,78 +6,78 @@ namespace Ora.GameManaging.Server.Infrastructure
     public class TurnManager(NotificationManager notification)
     {
         private readonly ConcurrentDictionary<string, CancellationTokenSource> _tokens = new();
-        private readonly ConcurrentDictionary<string, int> _remainingSeconds = new();
+        private readonly ConcurrentDictionary<string, List<string>> _groupTurnOrder = new();
+        private readonly ConcurrentDictionary<string, int> _groupTurnIndex = new();
 
-        public void StartTurn(string roomId, Func<string, (string nextPlayerId, string nextPlayerName)> getNextPlayer, int duration)
+        // Simultaneous group turn: all selected players are active at the same time
+        public void StartGroupTurnSimultaneous(string roomId, List<string> playerConnectionIds, int duration)
         {
-            if (_tokens.TryGetValue(roomId, out var oldCts))
-                oldCts.Cancel();
+            if (playerConnectionIds == null || playerConnectionIds.Count == 0)
+                return;
 
             var cts = new CancellationTokenSource();
             _tokens[roomId] = cts;
             var token = cts.Token;
 
-            var (playerId, playerName) = getNextPlayer(roomId);
-
-            _remainingSeconds[roomId] = duration;
-
             _ = Task.Run(async () =>
             {
-                await notification.SendTurnChanged(roomId, playerName);
-
+                await notification.SendTurnChangedToPlayers(playerConnectionIds, "It's your turn!");
                 for (int i = duration; i >= 0; i--)
                 {
-                    _remainingSeconds[roomId] = i;
                     if (token.IsCancellationRequested) return;
-                    await notification.SendTimerTick(roomId, i);
+                    await notification.SendTimerTickToPlayers(playerConnectionIds, i);
                     await Task.Delay(1000, token);
                 }
-
                 if (!token.IsCancellationRequested)
                 {
-                    await notification.SendTurnTimeout(roomId, playerName);
-                    StartTurn(roomId, getNextPlayer, duration);
+                    await notification.SendTurnTimeoutToPlayers(playerConnectionIds, "Timeout!");
+                    await notification.SendGroupTurnEnded(roomId);
                 }
             });
         }
 
-        public void PauseTimer(string roomId)
+        // Rotating group turn: one-by-one, single pass
+        public void StartGroupTurnRotating(string roomId, List<string> playerConnectionIds, int duration)
         {
-            if (_tokens.TryGetValue(roomId, out var cts))
-            {
-                cts.Cancel();
-                notification.SendTimerPaused(roomId);
-            }
+            if (playerConnectionIds == null || playerConnectionIds.Count == 0)
+                return;
+
+            _groupTurnOrder[roomId] = playerConnectionIds;
+            _groupTurnIndex[roomId] = 0;
+            RunNextTurn(roomId, duration);
         }
 
-        public void ResumeTimer(string roomId, Func<string, (string playerId, string playerName)> getCurrentPlayer, int defaultDuration)
+        private void RunNextTurn(string roomId, int duration)
         {
-            int secondsLeft = defaultDuration;
-            if (_remainingSeconds.TryGetValue(roomId, out var left))
-                secondsLeft = left;
+            if (!_groupTurnOrder.TryGetValue(roomId, out var order) ||
+                !_groupTurnIndex.TryGetValue(roomId, out var idx) ||
+                idx >= order.Count)
+            {
+                notification.SendGroupTurnEnded(roomId);
+                _groupTurnOrder.TryRemove(roomId, out _);
+                _groupTurnIndex.TryRemove(roomId, out _);
+                return;
+            }
 
-            var (playerId, playerName) = getCurrentPlayer(roomId);
-
+            var currentPlayerId = order[idx];
             var cts = new CancellationTokenSource();
             _tokens[roomId] = cts;
             var token = cts.Token;
 
             _ = Task.Run(async () =>
             {
-                await notification.SendTimerResumed(roomId);
-
-                for (int i = secondsLeft; i >= 0; i--)
+                await notification.SendTurnChangedToPlayers(new List<string> { currentPlayerId }, "It's your turn!");
+                for (int i = duration; i >= 0; i--)
                 {
-                    _remainingSeconds[roomId] = i;
                     if (token.IsCancellationRequested) return;
-                    await notification.SendTimerTick(roomId, i);
+                    await notification.SendTimerTickToPlayers(new List<string> { currentPlayerId }, i);
                     await Task.Delay(1000, token);
                 }
-
                 if (!token.IsCancellationRequested)
                 {
-                    await notification.SendTurnTimeout(roomId, playerName);
-                    StartTurn(roomId, getCurrentPlayer, defaultDuration);
+                    await notification.SendTurnTimeoutToPlayers(new List<string> { currentPlayerId }, "Timeout!");
+                    _groupTurnIndex[roomId] = idx + 1;
+                    RunNextTurn(roomId, duration);
                 }
             });
         }
@@ -86,6 +86,8 @@ namespace Ora.GameManaging.Server.Infrastructure
         {
             if (_tokens.TryRemove(roomId, out var cts))
                 cts.Cancel();
+            _groupTurnOrder.TryRemove(roomId, out _);
+            _groupTurnIndex.TryRemove(roomId, out _);
         }
     }
 }
