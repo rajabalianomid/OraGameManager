@@ -1,1 +1,5 @@
 .vs/*
+/Ora.GameManaging.Server/bin/*
+/Ora.GameManaging.Server/obj/*
+/Ora.TestClient/bin/*
+/Ora.TestClient/obj/*

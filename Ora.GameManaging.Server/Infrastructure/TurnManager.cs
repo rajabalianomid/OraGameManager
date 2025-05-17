@@ -3,91 +3,154 @@ using System.Collections.Concurrent;
 
 namespace Ora.GameManaging.Server.Infrastructure
 {
-    public class TurnManager(NotificationManager notification)
+    public class TurnManager(IHubContext<GameHub> hubContext)
     {
-        private readonly ConcurrentDictionary<string, CancellationTokenSource> _tokens = new();
-        private readonly ConcurrentDictionary<string, List<string>> _groupTurnOrder = new();
-        private readonly ConcurrentDictionary<string, int> _groupTurnIndex = new();
 
-        // Simultaneous group turn: all selected players are active at the same time
-        public void StartGroupTurnSimultaneous(string roomId, List<string> playerConnectionIds, int duration)
+        // Internal state for each room's timer
+        private class GroupTimerState
         {
-            if (playerConnectionIds == null || playerConnectionIds.Count == 0)
-                return;
-
-            var cts = new CancellationTokenSource();
-            _tokens[roomId] = cts;
-            var token = cts.Token;
-
-            _ = Task.Run(async () =>
-            {
-                await notification.SendTurnChangedToPlayers(playerConnectionIds, "It's your turn!");
-                for (int i = duration; i >= 0; i--)
-                {
-                    if (token.IsCancellationRequested) return;
-                    await notification.SendTimerTickToPlayers(playerConnectionIds, i);
-                    await Task.Delay(1000, token);
-                }
-                if (!token.IsCancellationRequested)
-                {
-                    await notification.SendTurnTimeoutToPlayers(playerConnectionIds, "Timeout!");
-                    await notification.SendGroupTurnEnded(roomId);
-                }
-            });
+            public CancellationTokenSource TokenSource { get; set; } = new();
+            public bool IsPaused { get; set; }
+            public int RemainingSeconds { get; set; }
+            public List<string> TargetPlayers { get; set; } = new();
         }
 
-        // Rotating group turn: one-by-one, single pass
-        public void StartGroupTurnRotating(string roomId, List<string> playerConnectionIds, int duration)
-        {
-            if (playerConnectionIds == null || playerConnectionIds.Count == 0)
-                return;
+        private readonly ConcurrentDictionary<string, GroupTimerState> _groupTimers = new();
 
-            _groupTurnOrder[roomId] = playerConnectionIds;
-            _groupTurnIndex[roomId] = 0;
-            RunNextTurn(roomId, duration);
+        // Simultaneous group timer for all selected players
+        public void StartGroupTurnSimultaneous(string roomId, List<string> playerIds, int durationSeconds)
+        {
+            Cancel(roomId);
+
+            var state = new GroupTimerState
+            {
+                TokenSource = new CancellationTokenSource(),
+                IsPaused = false,
+                RemainingSeconds = durationSeconds,
+                TargetPlayers = playerIds.ToList()
+            };
+            _groupTimers[roomId] = state;
+
+            _ = RunGroupTimerSimultaneous(roomId, state); // Fire & forget
         }
 
-        private void RunNextTurn(string roomId, int duration)
+        // Rotating group timer, each player gets timer one after another
+        public void StartGroupTurnRotating(string roomId, List<string> playerIds, int durationSeconds)
         {
-            if (!_groupTurnOrder.TryGetValue(roomId, out var order) ||
-                !_groupTurnIndex.TryGetValue(roomId, out var idx) ||
-                idx >= order.Count)
-            {
-                notification.SendGroupTurnEnded(roomId);
-                _groupTurnOrder.TryRemove(roomId, out _);
-                _groupTurnIndex.TryRemove(roomId, out _);
-                return;
-            }
+            Cancel(roomId);
 
-            var currentPlayerId = order[idx];
-            var cts = new CancellationTokenSource();
-            _tokens[roomId] = cts;
-            var token = cts.Token;
-
-            _ = Task.Run(async () =>
+            var state = new GroupTimerState
             {
-                await notification.SendTurnChangedToPlayers(new List<string> { currentPlayerId }, "It's your turn!");
-                for (int i = duration; i >= 0; i--)
-                {
-                    if (token.IsCancellationRequested) return;
-                    await notification.SendTimerTickToPlayers(new List<string> { currentPlayerId }, i);
-                    await Task.Delay(1000, token);
-                }
-                if (!token.IsCancellationRequested)
-                {
-                    await notification.SendTurnTimeoutToPlayers(new List<string> { currentPlayerId }, "Timeout!");
-                    _groupTurnIndex[roomId] = idx + 1;
-                    RunNextTurn(roomId, duration);
-                }
-            });
+                TokenSource = new CancellationTokenSource(),
+                IsPaused = false,
+                RemainingSeconds = durationSeconds,
+                TargetPlayers = playerIds.ToList()
+            };
+            _groupTimers[roomId] = state;
+
+            _ = RunGroupTimerRotating(roomId, state); // Fire & forget
+        }
+
+        public void PauseGroupTimer(string roomId)
+        {
+            if (_groupTimers.TryGetValue(roomId, out var state))
+                state.IsPaused = true;
+        }
+
+        public void ResumeGroupTimer(string roomId)
+        {
+            if (_groupTimers.TryGetValue(roomId, out var state))
+                state.IsPaused = false;
         }
 
         public void Cancel(string roomId)
         {
-            if (_tokens.TryRemove(roomId, out var cts))
-                cts.Cancel();
-            _groupTurnOrder.TryRemove(roomId, out _);
-            _groupTurnIndex.TryRemove(roomId, out _);
+            if (_groupTimers.TryRemove(roomId, out var state))
+                state.TokenSource.Cancel();
+        }
+
+        // Simultaneous group timer: everyone sees the timer
+        private async Task RunGroupTimerSimultaneous(string roomId, GroupTimerState state)
+        {
+            try
+            {
+                for (int i = state.RemainingSeconds; i >= 0; i--)
+                {
+                    state.RemainingSeconds = i;
+
+                    while (state.IsPaused)
+                    {
+                        await Task.Delay(200, state.TokenSource.Token);
+                    }
+
+                    // Broadcast timer tick to the whole group
+                    await hubContext.Clients.Group(roomId).SendAsync("TimerTick", i);
+
+                    if (i == 0)
+                    {
+                        // Timeout for the whole group
+                        await hubContext.Clients.Group(roomId).SendAsync("TurnTimeout", state.TargetPlayers);
+                        Cancel(roomId); // Clean up after finish
+                    }
+                    else
+                    {
+                        await Task.Delay(1000, state.TokenSource.Token);
+                    }
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // Timer canceled
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[TurnManager] Error in simultaneous timer: {ex.Message}");
+            }
+        }
+
+        // Rotating group timer: each player has their turn one after another
+        private async Task RunGroupTimerRotating(string roomId, GroupTimerState state)
+        {
+            try
+            {
+                foreach (var playerId in state.TargetPlayers)
+                {
+                    int seconds = state.RemainingSeconds;
+                    for (int i = seconds; i >= 0; i--)
+                    {
+                        state.RemainingSeconds = i;
+
+                        while (state.IsPaused)
+                        {
+                            await Task.Delay(200, state.TokenSource.Token);
+                        }
+
+                        // Send timer tick only to the current player
+                        await hubContext.Clients.Client(playerId).SendAsync("TimerTick", i);
+
+                        if (i == 0)
+                        {
+                            await hubContext.Clients.Client(playerId).SendAsync("TurnTimeout");
+                            // Next player automatically
+                        }
+                        else
+                        {
+                            await Task.Delay(1000, state.TokenSource.Token);
+                        }
+                    }
+                    // Reset for the next player (if you want fresh timer for each player)
+                    state.RemainingSeconds = seconds;
+                }
+                Cancel(roomId); // Clean up after all players finished
+            }
+            catch (OperationCanceledException)
+            {
+                // Timer canceled
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[TurnManager] Error in rotating timer: {ex.Message}");
+            }
         }
     }
 }

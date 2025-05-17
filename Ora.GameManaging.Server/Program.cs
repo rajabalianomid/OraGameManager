@@ -1,5 +1,13 @@
-﻿using Ora.GameManaging.Server;
+﻿using Microsoft.EntityFrameworkCore;
+using Ora.GameManaging.Server;
+using Ora.GameManaging.Server.Data;
+using Ora.GameManaging.Server.Data.Repositories;
 using Ora.GameManaging.Server.Infrastructure;
+
+var config = new ConfigurationBuilder()
+    .SetBasePath(Directory.GetCurrentDirectory())
+    .AddJsonFile("appsettings.json", optional: true)
+    .Build();
 
 Host.CreateDefaultBuilder(args)
     .ConfigureWebHostDefaults(webBuilder =>
@@ -7,9 +15,14 @@ Host.CreateDefaultBuilder(args)
         webBuilder.UseUrls("http://localhost:5000");
         webBuilder.ConfigureServices(services =>
         {
+            services.AddDbContext<GameDbContext>(options => options.UseSqlServer(config.GetConnectionString("DefaultConnection")));
             services.AddSignalR();
+            services.AddHostedService<GameRoomLoader>();
             services.AddSingleton<NotificationManager>();
             services.AddSingleton<TurnManager>();
+            services.AddScoped<GameRoomRepository>();
+            services.AddScoped<PlayerRepository>();
+            services.AddScoped<EventRepository>();
         });
 
         webBuilder.Configure(app =>

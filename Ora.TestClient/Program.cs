@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.SignalR.Client;
 using System.Text.Json;
+using System.IO;
 
 enum PlayerStatus
 {
@@ -13,17 +14,27 @@ class Program
 {
     static HubConnection connection = null!;
     static string? currentRoom = null;
+    static string userId = ""; // Persistent per client
+    static string playerName = "";
 
     static async Task Main()
     {
+        Thread.Sleep(10000); // Wait for server to start (for testing purposes)
+
+        userId = LoadOrCreateUserId();
+
         connection = new HubConnectionBuilder()
             .WithUrl("http://localhost:5000/gamehub")
             .WithAutomaticReconnect()
             .Build();
 
         RegisterHandlers();
+
         await connection.StartAsync();
         Console.WriteLine("Connected to SignalR hub.\n");
+
+        // Auto join previous rooms (after restart/server reconnect)
+        await connection.InvokeAsync("Reconnect", userId);
 
         while (true)
         {
@@ -61,20 +72,20 @@ class Program
                     case "3":
                         await connection.InvokeAsync("ListRooms");
                         break;
-                    case "4": // Join room
+                    case "4":
                         Console.Write("Enter room ID to join: ");
                         var joinId = Console.ReadLine();
                         Console.Write("Enter your player name: ");
-                        var playerName = Console.ReadLine() ?? "Player";
+                        playerName = Console.ReadLine() ?? "Player";
                         Console.Write("Enter your role (e.g. Mafia, Villager, Doctor, etc): ");
                         var role = Console.ReadLine() ?? "";
                         currentRoom = joinId;
-                        await connection.InvokeAsync("JoinRoom", joinId, playerName, role);
+                        await connection.InvokeAsync("JoinRoom", joinId, userId, playerName, role);
                         break;
                     case "5":
                         if (currentRoom != null)
                         {
-                            await connection.InvokeAsync("LeaveRoom", currentRoom);
+                            await connection.InvokeAsync("LeaveRoom", currentRoom, userId);
                             currentRoom = null;
                         }
                         else Console.WriteLine("You are not in a room.");
@@ -90,7 +101,7 @@ class Program
                             Console.WriteLine("Select status: 0=Online, 1=InGame, 2=Waiting, 3=Turn");
                             var status = Console.ReadLine();
                             if (Enum.TryParse<PlayerStatus>(status, out var result))
-                                await connection.InvokeAsync("UpdateStatus", currentRoom, result);
+                                await connection.InvokeAsync("UpdateStatus", currentRoom, userId, result);
                             else Console.WriteLine("Invalid status.");
                         }
                         else Console.WriteLine("Join a room first.");
@@ -100,7 +111,7 @@ class Program
                         {
                             Console.Write("Message: ");
                             var msg = Console.ReadLine();
-                            await connection.InvokeAsync("SendMessageToRoom", currentRoom, msg);
+                            await connection.InvokeAsync("SendMessageToRoom", currentRoom, userId, msg);
                         }
                         else Console.WriteLine("Join a room first.");
                         break;
@@ -148,7 +159,6 @@ class Program
             Console.WriteLine();
         }
     }
-
 
     static void RegisterHandlers()
     {
@@ -237,5 +247,30 @@ class Program
         {
             Console.WriteLine("=== TIMER RESUMED ===");
         });
+
+        connection.On<List<string>>("ReconnectedRooms", rooms =>
+        {
+            if (rooms.Count > 0)
+            {
+                Console.WriteLine("Auto-joined rooms after reconnect:");
+                foreach (var room in rooms)
+                    Console.WriteLine(" - " + room);
+                currentRoom = rooms[0]; // Optionally auto-select a room
+            }
+        });
+    }
+
+    static string LoadOrCreateUserId()
+    {
+        string file = "user_id.txt";
+        if (File.Exists(file))
+        {
+            var id = File.ReadAllText(file).Trim();
+            if (!string.IsNullOrWhiteSpace(id))
+                return id;
+        }
+        var newId = Guid.NewGuid().ToString();
+        File.WriteAllText(file, newId);
+        return newId;
     }
 }
