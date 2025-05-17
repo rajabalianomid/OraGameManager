@@ -1,0 +1,15 @@
+[
+  {
+    "Name": "New Profile",
+    "Projects": [
+      {
+        "Path": "Ora.GameManaging.Server\\Ora.GameManaging.Server.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "Ora.TestClient\\Ora.TestClient.csproj",
+        "Action": "Start"
+      }
+    ]
+  }
+]

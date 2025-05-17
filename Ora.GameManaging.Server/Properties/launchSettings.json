@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "Ora.GameManaging.Server": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:52969;http://localhost:52970"
+    }
+  }
+}
