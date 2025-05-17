@@ -6,18 +6,9 @@ using System.Numerics;
 
 namespace Ora.GameManaging.Server
 {
-    public class GameHub : Hub
+    public class GameHub(TurnManager turnManager, NotificationManager notification) : Hub
     {
         private static ConcurrentDictionary<string, GameRoom> Rooms = new();
-
-        private readonly TurnManager _turnManager;
-        private readonly NotificationManager _notification;
-
-        public GameHub(TurnManager turnManager, NotificationManager notification)
-        {
-            _turnManager = turnManager;
-            _notification = notification;
-        }
 
         public override async Task OnConnectedAsync()
         {
@@ -49,7 +40,7 @@ namespace Ora.GameManaging.Server
         {
             if (Rooms.TryRemove(roomId, out var removedRoom))
             {
-                _turnManager.Cancel(roomId);
+                turnManager.Cancel(roomId);
                 foreach (var player in removedRoom.Players.Values)
                 {
                     await Groups.RemoveFromGroupAsync(player.ConnectionId, roomId);
@@ -89,7 +80,7 @@ namespace Ora.GameManaging.Server
 
             Console.WriteLine($"👤 Player {playerName} joined room {roomId}");
             await Groups.AddToGroupAsync(Context.ConnectionId, roomId);
-            await _notification.SendPlayerJoined(roomId, playerName);
+            await notification.SendPlayerJoined(roomId, playerName);
         }
 
         public async Task LeaveRoom(string roomId)
@@ -99,7 +90,7 @@ namespace Ora.GameManaging.Server
             if (!room.Players.TryRemove(Context.ConnectionId, out var player)) return;
 
             Console.WriteLine($"👋 Player {player.Name} left room {roomId}");
-            await _notification.SendPlayerLeft(roomId, player.Name);
+            await notification.SendPlayerLeft(roomId, player.Name);
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, roomId);
         }
 
@@ -144,10 +135,10 @@ namespace Ora.GameManaging.Server
             await Clients.Group(roomId).SendAsync("ReceiveMessage", player.Name, message);
         }
 
-        public void StartTurnCycle(string roomId)
+        public Task StartTurnCycle(string roomId)
         {
             if (!Rooms.TryGetValue(roomId, out var room) || room.Players.Count == 0)
-                return;
+                return Task.CompletedTask;
 
             (string, string) GetNextPlayer(string _)
             {
@@ -159,7 +150,27 @@ namespace Ora.GameManaging.Server
                 return (nextId, room.Players[nextId].Name);
             }
 
-            _turnManager.StartTurn(roomId, GetNextPlayer, room.TurnDurationSeconds);
+            turnManager.StartTurn(roomId, GetNextPlayer, room.TurnDurationSeconds);
+            return Task.CompletedTask;
+        }
+
+        public Task PauseTimer(string roomId)
+        {
+            turnManager.PauseTimer(roomId);
+            return Task.CompletedTask;
+        }
+
+        public Task ResumeTimer(string roomId)
+        {
+            if (!Rooms.TryGetValue(roomId, out var room)) return Task.CompletedTask;
+
+            (string, string) GetCurrentPlayer(string _)
+            {
+                var id = room.CurrentTurnPlayerId!;
+                return (id, room.Players[id].Name);
+            }
+            turnManager.ResumeTimer(roomId, GetCurrentPlayer, room.TurnDurationSeconds);
+            return Task.CompletedTask;
         }
 
         private async Task LeaveAllRooms(string connectionId)
@@ -169,7 +180,7 @@ namespace Ora.GameManaging.Server
                 if (room.Players.TryRemove(connectionId, out var player))
                 {
                     await Groups.RemoveFromGroupAsync(connectionId, room.RoomId);
-                    await _notification.SendPlayerLeft(room.RoomId, player.Name);
+                    await notification.SendPlayerLeft(room.RoomId, player.Name);
                 }
             }
         }

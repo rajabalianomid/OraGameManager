@@ -24,5 +24,11 @@ namespace Ora.GameManaging.Server.Infrastructure
 
         public Task SendPlayerLeft(string roomId, string playerName)
             => _hubContext.Clients.Group(roomId).SendAsync("PlayerLeft", playerName);
+
+        public Task SendTimerPaused(string roomId)
+            => _hubContext.Clients.Group(roomId).SendAsync("TimerPaused");
+
+        public Task SendTimerResumed(string roomId)
+            => _hubContext.Clients.Group(roomId).SendAsync("TimerResumed");
     }
 }

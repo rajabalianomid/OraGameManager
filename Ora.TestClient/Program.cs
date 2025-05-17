@@ -44,7 +44,9 @@ class Program
             Console.WriteLine("7. Update my status");
             Console.WriteLine("8. Send message to room");
             Console.WriteLine("9. Start turn cycle");
-            Console.WriteLine("10. Exit");
+            Console.WriteLine("10. Pause timer");
+            Console.WriteLine("11. Resume timer");
+            Console.WriteLine("12. Exit");
             Console.Write("Select option: ");
 
             var input = Console.ReadLine();
@@ -106,12 +108,20 @@ class Program
                         break;
                     case "9":
                         if (currentRoom != null)
-                        {
                             await connection.InvokeAsync("StartTurnCycle", currentRoom);
-                        }
                         else Console.WriteLine("Join a room first.");
                         break;
                     case "10":
+                        if (currentRoom != null)
+                            await connection.InvokeAsync("PauseTimer", currentRoom);
+                        else Console.WriteLine("Join a room first.");
+                        break;
+                    case "11":
+                        if (currentRoom != null)
+                            await connection.InvokeAsync("ResumeTimer", currentRoom);
+                        else Console.WriteLine("Join a room first.");
+                        break;
+                    case "12":
                         await connection.StopAsync();
                         return;
                     default:
@@ -190,19 +200,30 @@ class Program
             Console.WriteLine($"[Error] {errorMsg}");
         });
 
-        connection.On<string>("TurnChanged", playerName =>
+        connection.On<string>("TurnChanged", name =>
         {
-            Console.WriteLine($"🔄 Turn changed! It's now {playerName}'s turn.");
+            Console.WriteLine($"--- Turn changed! It's now {name}'s turn! ---");
         });
 
-        connection.On<int>("TimerTick", remaining =>
+        connection.On<int>("TimerTick", seconds =>
         {
-            Console.WriteLine($"⏱ Time remaining: {remaining}s");
+            Console.WriteLine($"[TIMER] {seconds} seconds left");
         });
 
-        connection.On<string>("TurnTimeout", playerName =>
+        connection.On<string>("TurnTimeout", name =>
         {
-            Console.WriteLine($"⏰ {playerName}'s turn has timed out!");
+            Console.WriteLine($"!!! Turn timeout for {name}");
+        });
+
+        // New for Pause/Resume
+        connection.On("TimerPaused", () =>
+        {
+            Console.WriteLine("=== TIMER PAUSED ===");
+        });
+
+        connection.On("TimerResumed", () =>
+        {
+            Console.WriteLine("=== TIMER RESUMED ===");
         });
     }
 }

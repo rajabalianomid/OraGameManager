@@ -1,12 +1,1 @@
-{
-  "Version": 1,
-  "Hash": "BkyzbI+ye2SpivqqTXKs//cAwr6giN+RWlpMxttFgiA=",
-  "Source": "Ora.GameManaging.Server",
-  "BasePath": "_content/Ora.GameManaging.Server",
-  "Mode": "Default",
-  "ManifestType": "Build",
-  "ReferencedProjectsConfiguration": [],
-  "DiscoveryPatterns": [],
-  "Assets": [],
-  "Endpoints": []
-}
+{"Version":1,"Hash":"BkyzbI+ye2SpivqqTXKs//cAwr6giN+RWlpMxttFgiA=","Source":"Ora.GameManaging.Server","BasePath":"_content/Ora.GameManaging.Server","Mode":"Default","ManifestType":"Build","ReferencedProjectsConfiguration":[],"DiscoveryPatterns":[],"Assets":[],"Endpoints":[]}

@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Ora.TestClient")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4cd8cf77477bed4b4b2753046edec187c6b405c6")]
 [assembly: System.Reflection.AssemblyProductAttribute("Ora.TestClient")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Ora.TestClient")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

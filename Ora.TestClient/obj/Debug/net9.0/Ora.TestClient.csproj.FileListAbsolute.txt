@@ -29,3 +29,4 @@ D:\Development\Game Managing\Ora.TestClient\obj\Debug\net9.0\refint\Ora.TestClie
 D:\Development\Game Managing\Ora.TestClient\obj\Debug\net9.0\Ora.TestClient.pdb
 D:\Development\Game Managing\Ora.TestClient\obj\Debug\net9.0\Ora.TestClient.genruntimeconfig.cache
 D:\Development\Game Managing\Ora.TestClient\obj\Debug\net9.0\ref\Ora.TestClient.dll
+D:\Development\Game Managing\Ora.TestClient\obj\Debug\net9.0\Ora.TestClient.sourcelink.json

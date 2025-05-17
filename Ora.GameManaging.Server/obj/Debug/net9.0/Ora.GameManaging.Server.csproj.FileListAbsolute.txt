@@ -55,3 +55,4 @@ D:\Development\Game Managing\Ora.GameManaging.Server\obj\Debug\net9.0\staticweba
 D:\Development\Game Managing\Ora.GameManaging.Server\obj\Debug\net9.0\staticwebassets.build.endpoints.json
 D:\Development\Game Managing\Ora.GameManaging.Server\obj\Debug\net9.0\staticwebassets.build.json.cache
 D:\Development\Game Managing\Ora.GameManaging.Server\obj\Debug\net9.0\staticwebassets.upToDateCheck.txt
+D:\Development\Game Managing\Ora.GameManaging.Server\obj\Debug\net9.0\Ora.GameManaging.Server.sourcelink.json
