@@ -56,7 +56,8 @@ class Program
             Console.WriteLine("10. Pause group timer");
             Console.WriteLine("11. Resume group timer");
             Console.WriteLine("12. Start rotating group turn (single-pass)");
-            Console.WriteLine("13. Exit");
+            Console.WriteLine("13. Change player role");
+            Console.WriteLine("14. Exit");
             Console.Write("Select option: ");
 
             var input = Console.ReadLine();
@@ -147,6 +148,15 @@ class Program
                         else Console.WriteLine("Join a room first.");
                         break;
                     case "13":
+                        if (currentRoom != null)
+                        {
+                            Console.Write("Enter new role: ");
+                            var newRole = Console.ReadLine();
+                            await connection.InvokeAsync("ChangePlayerRole", appId, currentRoom, userId, newRole);
+                        }
+                        else Console.WriteLine("Join a room first.");
+                        break;
+                    case "14":
                         await connection.StopAsync();
                         return;
                     default:
@@ -281,6 +291,11 @@ class Program
         connection.On("TimerResumed", () =>
         {
             Console.WriteLine("=== TIMER RESUMED ===");
+        });
+
+        connection.On<string, string>("PlayerRoleChanged", (name, newRole) =>
+        {
+            Console.WriteLine($"{name} changed role to {newRole}");
         });
     }
 }

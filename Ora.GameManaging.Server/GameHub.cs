@@ -289,6 +289,38 @@ namespace Ora.GameManaging.Server
             await Clients.Group(key).SendAsync("TurnChanged", "Group turn started (rotating)");
         }
 
+        public async Task ChangePlayerRole(string appId, string roomId, string userId, string newRole)
+        {
+            var key = $"{appId}:{roomId}";
+            if (!Rooms.TryGetValue(key, out var room))
+            {
+                await Clients.Caller.SendAsync("Error", $"Room {roomId} does not exist.");
+                return;
+            }
+            if (!room.Players.TryGetValue(userId, out var player))
+            {
+                await Clients.Caller.SendAsync("Error", "You are not in this room.");
+                return;
+            }
+
+            // Update in-memory role
+            player.Role = newRole;
+
+            // Update role in the database
+            await _playerRepo.UpdateRoleAsync(appId, roomId, userId, newRole);
+
+            // Log the event
+            var dbRoom = await _roomRepo.GetByRoomIdAsync(appId, roomId);
+            if (dbRoom != null)
+                await _eventRepo.AddAsync(dbRoom.Id, "RoleChanged", player.Name, newRole);
+
+            // Notify all room members about the role change
+            await Clients.Group(key).SendAsync("PlayerRoleChanged", player.Name, newRole);
+
+            // Save room snapshot
+            await _roomRepo.SaveSnapshotAsync(appId, roomId, SerializeRoom(room));
+        }
+
         // Helper method to extract connection IDs from input (customize as needed)
         private List<string> GetTargetPlayerConnectionIds(string appId, string roomId, string? rolesOrConnectionIds)
         {

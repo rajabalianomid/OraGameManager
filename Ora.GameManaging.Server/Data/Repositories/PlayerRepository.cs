@@ -28,7 +28,8 @@ namespace Ora.GameManaging.Server.Data.Repositories
         public async Task RemoveFromRoomAsync(string appId, string roomId, string userId)
         {
             var player = await db.Players
-                .FirstOrDefaultAsync(p => p.UserId == userId && p.GameRoom.AppId == appId && p.GameRoom.RoomId == roomId);
+                .Include(p => p.GameRoom)
+                .FirstOrDefaultAsync(p => p.GameRoom.AppId == appId && p.GameRoom.RoomId == roomId && p.UserId == userId);
             if (player != null)
             {
                 db.Players.Remove(player);
@@ -39,7 +40,8 @@ namespace Ora.GameManaging.Server.Data.Repositories
         public async Task UpdateStatusAsync(string appId, string roomId, string userId, int newStatus)
         {
             var player = await db.Players
-                .FirstOrDefaultAsync(p => p.UserId == userId && p.GameRoom.AppId == appId && p.GameRoom.RoomId == roomId);
+                .Include(p => p.GameRoom)
+                .FirstOrDefaultAsync(p => p.GameRoom.AppId == appId && p.GameRoom.RoomId == roomId && p.UserId == userId);
             if (player != null)
             {
                 player.Status = newStatus;
@@ -59,6 +61,7 @@ namespace Ora.GameManaging.Server.Data.Repositories
         public async Task UpdatePlayerConnectionId(string appId, string roomId, string userId, string newConnectionId)
         {
             var player = await db.Players
+                .Include(p => p.GameRoom)
                 .FirstOrDefaultAsync(p => p.GameRoom.AppId == appId && p.GameRoom.RoomId == roomId && p.UserId == userId);
             if (player != null)
             {
@@ -70,6 +73,7 @@ namespace Ora.GameManaging.Server.Data.Repositories
         public async Task UpdateLastSeenAsync(string appId, string roomId, string userId, DateTime lastSeen)
         {
             var player = await db.Players
+                .Include(p => p.GameRoom)
                 .FirstOrDefaultAsync(p => p.GameRoom.AppId == appId && p.GameRoom.RoomId == roomId && p.UserId == userId);
             if (player != null)
             {
@@ -95,6 +99,18 @@ namespace Ora.GameManaging.Server.Data.Repositories
                 await db.SaveChangesAsync();
 
             return removed;
+        }
+
+        public async Task UpdateRoleAsync(string appId, string roomId, string userId, string newRole)
+        {
+            var player = await db.Players
+                .Include(p => p.GameRoom)
+                .FirstOrDefaultAsync(p => p.GameRoom.AppId == appId && p.GameRoom.RoomId == roomId && p.UserId == userId);
+            if (player != null)
+            {
+                player.Role = newRole;
+                await db.SaveChangesAsync();
+            }
         }
     }
 }
