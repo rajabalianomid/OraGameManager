@@ -7,8 +7,9 @@ using System.Threading.Tasks;
 
 namespace Ora.GameManaging.Server.Models
 {
-    internal class GameRoom(string roomId)
+    internal class GameRoom(string appId, string roomId)
     {
+        public string AppId { get; set; } = appId;
         public string RoomId { get; set; } = roomId;
         public ConcurrentDictionary<string, PlayerInfo> Players { get; set; } = new();
         public string? CurrentTurnPlayerId { get; set; }

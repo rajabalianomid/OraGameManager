@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using System.Reflection.Emit;
 
 namespace Ora.GameManaging.Server.Data.Mapping
 {
@@ -18,6 +19,8 @@ namespace Ora.GameManaging.Server.Data.Mapping
                    .HasForeignKey(e => e.GameRoomEntityId)
                    .OnDelete(DeleteBehavior.Cascade);
             builder.Property(r => r.LastSnapshotJson).HasMaxLength(8000);
+            builder.HasIndex(r => new { r.AppId, r.RoomId })
+            .IsUnique();
         }
     }
 }

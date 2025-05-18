@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.SignalR.Client;
 using System.Text.Json;
-using System.IO;
 
 enum PlayerStatus
 {
@@ -14,14 +13,21 @@ class Program
 {
     static HubConnection connection = null!;
     static string? currentRoom = null;
-    static string userId = ""; // Persistent per client
+    static string appId = "";
     static string playerName = "";
+    static string userId = "";
 
     static async Task Main()
     {
-        Thread.Sleep(10000); // Wait for server to start (for testing purposes)
+        Thread.Sleep(4000);
 
-        userId = LoadOrCreateUserId();
+        Console.Write("Enter your AppId (client isolation): ");
+        appId = Console.ReadLine() ?? "defaultApp";
+
+        Console.Write("Enter your player name: ");
+        playerName = Console.ReadLine() ?? "Player";
+
+        userId = $"{appId}:{playerName}";
 
         connection = new HubConnectionBuilder()
             .WithUrl("http://localhost:5000/gamehub")
@@ -33,12 +39,11 @@ class Program
         await connection.StartAsync();
         Console.WriteLine("Connected to SignalR hub.\n");
 
-        // Auto join previous rooms (after restart/server reconnect)
-        await connection.InvokeAsync("Reconnect", userId);
+        await connection.InvokeAsync("Reconnect", appId, userId);
 
         while (true)
         {
-            Console.WriteLine("--- MENU ---");
+            Console.WriteLine("\n--- MENU ---");
             Console.WriteLine("1. Create room");
             Console.WriteLine("2. Delete room");
             Console.WriteLine("3. List rooms");
@@ -62,37 +67,35 @@ class Program
                     case "1":
                         Console.Write("Enter room ID to create: ");
                         var createId = Console.ReadLine();
-                        await connection.InvokeAsync("CreateRoom", createId);
+                        await connection.InvokeAsync("CreateRoom", appId, createId);
                         break;
                     case "2":
                         Console.Write("Enter room ID to delete: ");
                         var deleteId = Console.ReadLine();
-                        await connection.InvokeAsync("DeleteRoom", deleteId);
+                        await connection.InvokeAsync("DeleteRoom", appId, deleteId);
                         break;
                     case "3":
-                        await connection.InvokeAsync("ListRooms");
+                        await connection.InvokeAsync("ListRooms", appId);
                         break;
                     case "4":
                         Console.Write("Enter room ID to join: ");
                         var joinId = Console.ReadLine();
-                        Console.Write("Enter your player name: ");
-                        playerName = Console.ReadLine() ?? "Player";
                         Console.Write("Enter your role (e.g. Mafia, Villager, Doctor, etc): ");
                         var role = Console.ReadLine() ?? "";
                         currentRoom = joinId;
-                        await connection.InvokeAsync("JoinRoom", joinId, userId, playerName, role);
+                        await connection.InvokeAsync("JoinRoom", appId, joinId, userId, playerName, role);
                         break;
                     case "5":
                         if (currentRoom != null)
                         {
-                            await connection.InvokeAsync("LeaveRoom", currentRoom, userId);
+                            await connection.InvokeAsync("LeaveRoom", appId, currentRoom, userId);
                             currentRoom = null;
                         }
                         else Console.WriteLine("You are not in a room.");
                         break;
                     case "6":
                         if (currentRoom != null)
-                            await connection.InvokeAsync("GetPlayersInRoom", currentRoom);
+                            await connection.InvokeAsync("GetPlayersInRoom", appId, currentRoom);
                         else Console.WriteLine("Join a room first.");
                         break;
                     case "7":
@@ -101,7 +104,7 @@ class Program
                             Console.WriteLine("Select status: 0=Online, 1=InGame, 2=Waiting, 3=Turn");
                             var status = Console.ReadLine();
                             if (Enum.TryParse<PlayerStatus>(status, out var result))
-                                await connection.InvokeAsync("UpdateStatus", currentRoom, userId, result);
+                                await connection.InvokeAsync("UpdateStatus", appId, currentRoom, userId, result);
                             else Console.WriteLine("Invalid status.");
                         }
                         else Console.WriteLine("Join a room first.");
@@ -111,7 +114,7 @@ class Program
                         {
                             Console.Write("Message: ");
                             var msg = Console.ReadLine();
-                            await connection.InvokeAsync("SendMessageToRoom", currentRoom, userId, msg);
+                            await connection.InvokeAsync("SendMessageToRoom", appId, currentRoom, userId, msg);
                         }
                         else Console.WriteLine("Join a room first.");
                         break;
@@ -120,18 +123,18 @@ class Program
                         {
                             Console.Write("Enter role(s) or connectionId(s) for group turn (comma-separated, leave empty for all): ");
                             var rolesOrIds = Console.ReadLine();
-                            await connection.InvokeAsync("StartGroupTurn", currentRoom, rolesOrIds);
+                            await connection.InvokeAsync("StartGroupTurn", appId, currentRoom, rolesOrIds);
                         }
                         else Console.WriteLine("Join a room first.");
                         break;
                     case "10":
                         if (currentRoom != null)
-                            await connection.InvokeAsync("PauseGroupTimer", currentRoom);
+                            await connection.InvokeAsync("PauseGroupTimer", appId, currentRoom);
                         else Console.WriteLine("Join a room first.");
                         break;
                     case "11":
                         if (currentRoom != null)
-                            await connection.InvokeAsync("ResumeGroupTimer", currentRoom);
+                            await connection.InvokeAsync("ResumeGroupTimer", appId, currentRoom);
                         else Console.WriteLine("Join a room first.");
                         break;
                     case "12":
@@ -139,7 +142,7 @@ class Program
                         {
                             Console.Write("Enter role(s) or connectionId(s) for rotating group turn (comma-separated, leave empty for all): ");
                             var rolesOrIds = Console.ReadLine();
-                            await connection.InvokeAsync("StartGroupTurnRotating", currentRoom, rolesOrIds);
+                            await connection.InvokeAsync("StartGroupTurnRotating", appId, currentRoom, rolesOrIds);
                         }
                         else Console.WriteLine("Join a room first.");
                         break;
@@ -155,8 +158,6 @@ class Program
             {
                 Console.WriteLine($"[Exception] {ex.Message}");
             }
-
-            Console.WriteLine();
         }
     }
 
@@ -175,7 +176,8 @@ class Program
         connection.On<List<string>>("ReceiveRoomList", rooms =>
         {
             Console.WriteLine("Rooms:");
-            rooms.ForEach(r => Console.WriteLine(" - " + r));
+            foreach (var r in rooms)
+                Console.WriteLine(" - " + r);
         });
 
         connection.On<string>("PlayerJoined", name =>
@@ -223,31 +225,6 @@ class Program
             Console.WriteLine($"[Error] {errorMsg}");
         });
 
-        connection.On<string>("TurnChanged", msg =>
-        {
-            Console.WriteLine($"--- Turn changed! {msg} ---");
-        });
-
-        connection.On<int>("TimerTick", seconds =>
-        {
-            Console.WriteLine($"[TIMER] {seconds} seconds left");
-        });
-
-        connection.On<string>("TurnTimeout", msg =>
-        {
-            Console.WriteLine($"!!! Turn timeout: {msg}");
-        });
-
-        connection.On("TimerPaused", () =>
-        {
-            Console.WriteLine("=== TIMER PAUSED ===");
-        });
-
-        connection.On("TimerResumed", () =>
-        {
-            Console.WriteLine("=== TIMER RESUMED ===");
-        });
-
         connection.On<List<string>>("ReconnectedRooms", rooms =>
         {
             if (rooms.Count > 0)
@@ -255,22 +232,30 @@ class Program
                 Console.WriteLine("Auto-joined rooms after reconnect:");
                 foreach (var room in rooms)
                     Console.WriteLine(" - " + room);
-                currentRoom = rooms[0]; // Optionally auto-select a room
+                currentRoom = rooms[0];
             }
         });
-    }
 
-    static string LoadOrCreateUserId()
-    {
-        string file = "user_id.txt";
-        if (File.Exists(file))
+        // Optional: if your server supports these events, register them here.
+        connection.On<string>("TurnChanged", msg =>
         {
-            var id = File.ReadAllText(file).Trim();
-            if (!string.IsNullOrWhiteSpace(id))
-                return id;
-        }
-        var newId = Guid.NewGuid().ToString();
-        File.WriteAllText(file, newId);
-        return newId;
+            Console.WriteLine($"--- Turn changed! {msg} ---");
+        });
+        connection.On<int>("TimerTick", seconds =>
+        {
+            Console.WriteLine($"[TIMER] {seconds} seconds left");
+        });
+        connection.On<string>("TurnTimeout", msg =>
+        {
+            Console.WriteLine($"!!! Turn timeout: {msg}");
+        });
+        connection.On("TimerPaused", () =>
+        {
+            Console.WriteLine("=== TIMER PAUSED ===");
+        });
+        connection.On("TimerResumed", () =>
+        {
+            Console.WriteLine("=== TIMER RESUMED ===");
+        });
     }
 }

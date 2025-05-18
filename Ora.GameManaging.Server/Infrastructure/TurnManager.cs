@@ -83,13 +83,13 @@ namespace Ora.GameManaging.Server.Infrastructure
                         await Task.Delay(200, state.TokenSource.Token);
                     }
 
-                    // Broadcast timer tick to the whole group
-                    await hubContext.Clients.Group(roomId).SendAsync("TimerTick", i);
+                    // Broadcast timer tick ONLY to target players (not whole group)
+                    await hubContext.Clients.Clients(state.TargetPlayers).SendAsync("TimerTick", i);
 
                     if (i == 0)
                     {
-                        // Timeout for the whole group
-                        await hubContext.Clients.Group(roomId).SendAsync("TurnTimeout", state.TargetPlayers);
+                        // Timeout ONLY to target players
+                        await hubContext.Clients.Clients(state.TargetPlayers).SendAsync("TurnTimeout", state.TargetPlayers);
                         Cancel(roomId); // Clean up after finish
                     }
                     else
