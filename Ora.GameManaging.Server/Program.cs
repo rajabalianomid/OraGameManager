@@ -18,6 +18,7 @@ Host.CreateDefaultBuilder(args)
             services.AddDbContext<GameDbContext>(options => options.UseSqlServer(config.GetConnectionString("DefaultConnection")));
             services.AddSignalR();
             services.AddHostedService<GameRoomLoader>();
+            services.AddHostedService<StalePlayerCleanupService>();
             services.AddSingleton<NotificationManager>();
             services.AddSingleton<TurnManager>();
             services.AddScoped<GameRoomRepository>();

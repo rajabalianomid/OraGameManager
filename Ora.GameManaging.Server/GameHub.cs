@@ -62,6 +62,18 @@ namespace Ora.GameManaging.Server
             Rooms = dict;
         }
 
+        public static void RemoveStalePlayersFromMemory(List<(string AppId, string RoomId, string UserId)> stalePlayers)
+        {
+            foreach (var (appId, roomId, userId) in stalePlayers)
+            {
+                var key = $"{appId}:{roomId}";
+                if (Rooms.TryGetValue(key, out var room))
+                {
+                    room.Players.TryRemove(userId, out _);
+                }
+            }
+        }
+
         public override async Task OnConnectedAsync()
         {
             Console.WriteLine($"Connected: {Context.ConnectionId}");
@@ -84,7 +96,7 @@ namespace Ora.GameManaging.Server
             {
                 var key = $"{appId}:{roomId}";
                 await _playerRepo.UpdatePlayerConnectionId(appId, roomId, userId, connectionId);
-
+                await _playerRepo.UpdateLastSeenAsync(appId, roomId, userId, DateTime.UtcNow);
                 if (Rooms.TryGetValue(key, out var room))
                 {
                     if (room.Players.TryGetValue(userId, out var player))
@@ -163,6 +175,9 @@ namespace Ora.GameManaging.Server
                 return;
             }
             await _playerRepo.AddToRoomAsync(appId, roomId, Context.ConnectionId, userId, playerName, role, (int)PlayerStatus.Online);
+
+            await _playerRepo.UpdateLastSeenAsync(appId, roomId, userId, DateTime.UtcNow);
+
             await _eventRepo.AddAsync(dbRoom.Id, "PlayerJoined", playerName, role);
 
             await Groups.AddToGroupAsync(Context.ConnectionId, key);
@@ -215,6 +230,7 @@ namespace Ora.GameManaging.Server
                 if (dbRoom == null) return;
                 await _playerRepo.UpdateStatusAsync(appId, roomId, userId, (int)newStatus);
                 await _eventRepo.AddAsync(dbRoom.Id, "StatusChanged", player.Name, newStatus.ToString());
+                await _playerRepo.UpdateLastSeenAsync(appId, roomId, userId, DateTime.UtcNow);
                 await _roomRepo.SaveSnapshotAsync(appId, roomId, SerializeRoom(room));
             }
             else
@@ -232,6 +248,8 @@ namespace Ora.GameManaging.Server
             var dbRoom = await _roomRepo.GetByRoomIdAsync(appId, roomId);
             if (dbRoom != null)
                 await _eventRepo.AddAsync(dbRoom.Id, "ChatMessage", player.Name, message);
+
+            await _playerRepo.UpdateLastSeenAsync(appId, roomId, userId, DateTime.UtcNow);
         }
 
         // 1. Start group turn (simultaneous)

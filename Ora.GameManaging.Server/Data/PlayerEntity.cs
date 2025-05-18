@@ -9,6 +9,7 @@
         public string? Role { get; set; }
         public int Status { get; set; }
         public int GameRoomEntityId { get; set; }
+        public DateTime LastSeen { get; set; }
         public GameRoomEntity GameRoom { get; set; } = null!;
     }
 }

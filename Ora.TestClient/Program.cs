@@ -163,6 +163,31 @@ class Program
 
     static void RegisterHandlers()
     {
+        connection.Reconnected += async (connectionId) =>
+        {
+            Console.WriteLine("[Reconnected] Try to auto-join...");
+            await connection.InvokeAsync("Reconnect", appId, userId);
+        };
+
+        connection.Closed += async (error) =>
+        {
+            Console.WriteLine("Disconnected from server. Retrying...");
+            while (true)
+            {
+                try
+                {
+                    await Task.Delay(2000);
+                    await connection.StartAsync();
+                    Console.WriteLine("Reconnected!");
+                    break;
+                }
+                catch
+                {
+                    Console.WriteLine("Retrying connection...");
+                }
+            }
+        };
+
         connection.On<string>("RoomCreated", roomId =>
         {
             Console.WriteLine($"Room created: {roomId}");
