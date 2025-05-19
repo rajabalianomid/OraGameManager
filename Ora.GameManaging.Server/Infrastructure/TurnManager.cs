@@ -1,9 +1,12 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿using Grpc.Net.ClientFactory;
+using Microsoft.AspNetCore.SignalR;
+using Ora.GameManaging.Server.Infrastructure.Proxy;
 using System.Collections.Concurrent;
+using System.Security.AccessControl;
 
 namespace Ora.GameManaging.Server.Infrastructure
 {
-    public class TurnManager(IHubContext<GameHub> hubContext)
+    public class TurnManager(IHubContext<GameHub> hubContext, GrpcHelloService grpcHelloService)
     {
 
         // Internal state for each room's timer
@@ -76,6 +79,7 @@ namespace Ora.GameManaging.Server.Infrastructure
             {
                 for (int i = state.RemainingSeconds; i >= 0; i--)
                 {
+                    var result= await grpcHelloService.SayHelloAsync("Mafia", "Test");
                     state.RemainingSeconds = i;
 
                     while (state.IsPaused)

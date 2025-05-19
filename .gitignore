@@ -1,5 +1,9 @@
 .vs/*
 /Ora.GameManaging.Server/bin/*
 /Ora.GameManaging.Server/obj/*
+/Ora.GameManaging.Mafia/bin/*
+/Ora.GameManaging.Mafia/obj/*
+/Ora.GameManaging.Protos/bin/*
+/Ora.GameManaging.Protos/obj/*
 /Ora.TestClient/bin/*
 /Ora.TestClient/obj/*

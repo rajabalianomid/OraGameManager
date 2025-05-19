@@ -9,6 +9,10 @@
       {
         "Path": "Ora.TestClient\\Ora.TestClient.csproj",
         "Action": "Start"
+      },
+      {
+        "Path": "Ora.GameManaging.Mafia\\Ora.GameManaging.Mafia.csproj",
+        "Action": "Start"
       }
     ]
   }
