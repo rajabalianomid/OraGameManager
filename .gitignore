@@ -7,3 +7,4 @@
 /Ora.GameManaging.Protos/obj/*
 /Ora.TestClient/bin/*
 /Ora.TestClient/obj/*
+/client-app/node_modules/*

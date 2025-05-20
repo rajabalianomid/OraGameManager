@@ -1,0 +1,35 @@
+#root {
+  width: 100%;
+}
+
+@media (min-width: 1200px) {
+
+  #page-container.main-content-narrow>#main-container .content,
+  #page-container.main-content-narrow>#page-footer .content,
+  #page-container.main-content-narrow>#page-header .content,
+  #page-container.main-content-narrow>#page-header .content-header {
+    width: 100% !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .content {
+    padding: 10px !important;
+  }
+}
+
+.btn-toolbar.mb-2 {
+  margin-bottom: 0px !important;
+}
+
+.btn-toolbar-center {
+  display: block !important;
+}
+
+.img-avatar-thumb-green {
+  box-shadow: 0 0 0 .25rem rgba(0, 255, 0, 1) !important;
+}
+
+.img-avatar-thumb-red {
+  box-shadow: 0 0 0 .25rem rgba(255, 0, 0, 1) !important;
+}

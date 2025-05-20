@@ -16,11 +16,12 @@ namespace Ora.GameManaging.Server.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            base.OnModelCreating(modelBuilder);
+
             modelBuilder.ApplyConfiguration(new AppInstanceEntityConfiguration());
             modelBuilder.ApplyConfiguration(new GameRoomEntityConfiguration());
             modelBuilder.ApplyConfiguration(new PlayerEntityConfiguration());
-            modelBuilder.ApplyConfiguration(new GameEventEntityConfiguration()); // optional
-            base.OnModelCreating(modelBuilder);
+            modelBuilder.ApplyConfiguration(new GameEventEntityConfiguration());
         }
     }
 }
