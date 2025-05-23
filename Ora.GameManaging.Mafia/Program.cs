@@ -1,8 +1,11 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Ora.GameManaging.Mafia.Data;
+using Ora.GameManaging.Mafia.Protos;
 using Ora.GameManaging.Mafia.Services;
 using System.Security.Claims;
 using System.Text;
@@ -62,7 +65,18 @@ builder.Services.AddAuthentication(x =>
         ValidateIssuer = false,
         ValidateAudience = false
     };
+
 });
+
+var grpcServer = config.GetSection("GrpcServerRoot").Value;
+builder.Services.AddGrpcClient<GameRoomGrpc.GameRoomGrpcClient>("GameManaging", o =>
+{
+    if (grpcServer == null)
+        throw new Exception("GrpcServerRoot is not configured in appsettings.json.");
+    else
+        o.Address = new Uri(uriString: grpcServer);
+});
+
 
 var app = builder.Build();
 app.UseRouting();
@@ -77,6 +91,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 // Configure the HTTP request pipeline.
 app.MapGrpcService<GreeterService>();
+
 app.MapGet("/", () => "Communication with gRPC endpoints must be made through a gRPC client. To learn how to create a client, visit: https://go.microsoft.com/fwlink/?linkid=2086909");
 
 app.MapControllers(); // Add this line to map WebAPI controller endpoints

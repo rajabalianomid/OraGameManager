@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+option csharp_namespace = "Ora.GameManaging.Mafia.Protos";
+
+service GameRoomGrpc {
+  rpc GetRoomById (GetRoomByIdRequest) returns (GameRoomReply);
+  rpc GetRoomByAppId (GetRoomByAppIdRequest) returns (GameRoomReply);
+  rpc CreateRoom (CreateRoomRequest) returns (BoolReply);
+  rpc UpdateRoom (UpdateRoomRequest) returns (BoolReply);
+  rpc DeleteRoom (DeleteRoomRequest) returns (BoolReply);
+  rpc GetAllRooms (GetAllRoomsRequest) returns (GetAllRoomsReply);
+}
+
+message GetRoomByIdRequest {
+  string room_id = 1;
+}
+
+message GetRoomByAppIdRequest {
+  string app_id = 1;
+}
+
+message CreateRoomRequest {
+  GameRoomDto room = 1;
+}
+
+message UpdateRoomRequest {
+  GameRoomDto room = 1;
+}
+
+message DeleteRoomRequest {
+  string room_id = 1;
+}
+
+message GetAllRoomsRequest {}
+
+message GameRoomReply {
+  GameRoomDto room = 1;
+}
+
+message GetAllRoomsReply {
+  repeated GameRoomDto rooms = 1;
+}
+
+message BoolReply {
+  bool result = 1;
+}
+
+// Map your GameRoomEntity to this DTO
+message GameRoomDto {
+  string room_id = 1;
+  string app_id = 2;
+  int32 turn_duration_seconds = 3;
+  string current_turn_players = 4;
+  string created_at = 5;
+}

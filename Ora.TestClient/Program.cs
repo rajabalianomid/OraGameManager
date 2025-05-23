@@ -30,7 +30,7 @@ class Program
         userId = $"{appId}:{playerName}";
 
         connection = new HubConnectionBuilder()
-            .WithUrl("http://localhost:5000/gamehub")
+            .WithUrl("https://localhost:5001/gamehub")
             .WithAutomaticReconnect()
             .Build();
 

@@ -8,6 +8,7 @@ using Ora.GameManaging.Server.Data;
 using Ora.GameManaging.Server.Data.Repositories;
 using Ora.GameManaging.Server.Infrastructure;
 using Ora.GameManaging.Server.Infrastructure.Proxy;
+using Ora.GameManaging.Server.Infrastructure.Services;
 using System.Text;
 
 // Rest of the code remains unchanged
@@ -20,7 +21,7 @@ Host.CreateDefaultBuilder(args)
      })
     .ConfigureWebHostDefaults((webBuilder) =>
     {
-        webBuilder.UseUrls("http://localhost:5000");
+        webBuilder.UseUrls("http://localhost:5000", "https://localhost:5001");
         webBuilder.ConfigureServices((context, services) =>
         {
             var configuration = context.Configuration;
@@ -65,19 +66,27 @@ Host.CreateDefaultBuilder(args)
                     }
                 };
             });
+            services.AddGrpc();
             services.AddSignalR();
             services.AddHostedService<GameRoomLoader>();
+            //Logic
             services.AddHostedService<StalePlayerCleanupService>();
             services.AddSingleton<NotificationManager>();
             services.AddSingleton<TurnManager>();
+            //Repositories
             services.AddScoped<GameRoomRepository>();
             services.AddScoped<PlayerRepository>();
             services.AddScoped<EventRepository>();
+            services.AddScoped<RoomRepository>();
+            //Services
+            services.AddScoped<IGameRoomServices, GameRoomServices>();
+            //GRPC
             services.AddSingleton<GrpcHelloService>();
 
-            #region GRPC Services
 
-            var grpcServers = configuration.GetSection("GrpcServers").Get<Dictionary<string, string>>() ?? new();
+            #region GRPC Clients
+
+            var grpcServers = configuration.GetSection("GrpcServers").Get<Dictionary<string, string>>() ?? [];
 
             foreach (var server in grpcServers)
             {
@@ -97,6 +106,15 @@ Host.CreateDefaultBuilder(args)
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapHub<GameHub>("/gamehub");
+                endpoints.MapGrpcService<GameRoomServices>();
+            });
+        });
+        webBuilder.ConfigureKestrel(options =>
+        {
+            options.ListenLocalhost(5001, listenOptions =>
+            {
+                listenOptions.UseHttps();
+                listenOptions.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http1AndHttp2;
             });
         });
     })
