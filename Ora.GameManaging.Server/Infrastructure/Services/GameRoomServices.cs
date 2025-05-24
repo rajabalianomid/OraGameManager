@@ -32,7 +32,7 @@ namespace Ora.GameManaging.Server.Infrastructure.Services
 
         public override async Task<GetAllRoomsReply> GetRoomsByAppId(GetRoomByAppIdRequest request, ServerCallContext context)
         {
-            var rooms = await repository.GetByAppIdAsync(request.AppId, context.CancellationToken);
+            var rooms = await repository.GetByAppIdAsync(request.AppId, request.Pagination.Size, request.Pagination.Skip, request.Pagination.Count, context.CancellationToken);
             var reply = new GetAllRoomsReply();
             reply.Rooms.AddRange(rooms.Select(room => room.ToModel()));
             return reply;

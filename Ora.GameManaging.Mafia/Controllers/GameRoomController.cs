@@ -1,14 +1,17 @@
 using Grpc.Net.ClientFactory;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Ora.GameManaging.Mafia.Protos;
+using Ora.GameManaging.Mafia.Infrastructure.Services;
 using Ora.GameManaging.Mafia.Model;
 using Ora.GameManaging.Mafia.Model.Mapping;
-using Ora.GameManaging.Mafia.Services;
+using Ora.GameManaging.Mafia.Protos;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Ora.GameManaging.Mafia.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class GameRoomController(GrpcClientFactory clientFactory, IGeneralAttributeService generalAttributeService) : ControllerBase
     {
         private readonly GameRoomGrpc.GameRoomGrpcClient _gameRoomClient = clientFactory.CreateClient<GameRoomGrpc.GameRoomGrpcClient>("GameManaging");
@@ -30,13 +33,13 @@ namespace Ora.GameManaging.Mafia.Controllers
             return Ok(response.Room.ToModel());
         }
 
-        [HttpGet("by-app/{appId}")]
-        public async Task<ActionResult<List<GameRoomModel>>> GetAllByAppId(string appId, CancellationToken cancellationToken)
+        [HttpPost("by-app")]
+        public async Task<ActionResult<List<GameRoomModel>>> GetAllByAppId(RoomRequestModel requestModel, CancellationToken cancellationToken)
         {
-            var response = await _gameRoomClient.GetRoomsByAppIdAsync(new GetRoomByAppIdRequest { AppId = appId }, cancellationToken: cancellationToken);
+            var response = await _gameRoomClient.GetRoomsByAppIdAsync(new GetRoomByAppIdRequest { AppId = requestModel.AppId, Pagination = new Pagination { Count = requestModel.Count, Size = requestModel.Size, Skip = requestModel.Skip } }, cancellationToken: cancellationToken);
             var rooms = response.Rooms.Select(r => r.ToModel()).ToList();
 
-            var attributes = await generalAttributeService.GetAllByApplicationIdAsync(appId, EntityKeys.GameRoom);
+            var attributes = await generalAttributeService.GetAllByApplicationIdAsync(requestModel.AppId, EntityKeys.GameRoom);
             var attributesByRoom = attributes
                 .GroupBy(a => a.EntityId)
                 .ToDictionary(g => g.Key, g => g.ToList());
@@ -49,7 +52,7 @@ namespace Ora.GameManaging.Mafia.Controllers
                 }
             });
 
-            return Ok(rooms);
+            return Ok(new RoomResultModel { Data = rooms, Count = 1, Successful = true, Error = null }); ;
         }
 
         [HttpPost]

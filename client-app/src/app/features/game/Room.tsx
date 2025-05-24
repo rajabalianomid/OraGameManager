@@ -70,9 +70,9 @@ function Room() {
                             <tbody>
                                 {
                                     roomStore.rooms.data.map((room) => (
-                                        <tr key={room.id}>
-                                            <td className="text-center">{room.id}</td>
-                                            <td className="fw-semibold"><a href="#" onClick={() => handleJoinRoom(room.id.toString())}>{room.name}</a></td>
+                                        <tr key={room.roomId}>
+                                            <td className="text-center">{room.roomId}</td>
+                                            <td className="fw-semibold"><a href="#" onClick={() => handleJoinRoom(room.roomId.toString())}>{room.name}</a></td>
                                             <td className="d-none d-sm-table-cell">
                                                 <span className="text-muted">{room.description}</span>
                                             </td>

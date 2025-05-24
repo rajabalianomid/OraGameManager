@@ -37,7 +37,7 @@ const requests = {
 }
 
 const Rooms = {
-    getRooms: (page: number, size: number) => requests.post<Pagination<RoomModel>>('/api/room', { skip: (page - 1) * size, top: size, count: true, clientId: 1 })
+    getRooms: (page: number, size: number) => requests.post<Pagination<RoomModel>>('/api/gameroom/by-app', { appId: '123e4567-e89b-12d3-a456-426614174000', skip: (page - 1) * size, size: size, count: true })
     // allMembers: (id: number) => requests.get<Members[]>(`/api/v1/room/getallmember/${id}`),
     // joinRoom: (id: number) => requests.post(`/api/v1/room/join/${id}`, {}),
 }

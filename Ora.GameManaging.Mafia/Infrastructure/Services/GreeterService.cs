@@ -1,7 +1,7 @@
 using Grpc.Core;
 using Ora.GameManaging.Mafia.Protos;
 
-namespace Ora.GameManaging.Mafia.Services
+namespace Ora.GameManaging.Mafia.Infrastructure.Services
 {
     public class GreeterService : Greeter.GreeterBase
     {

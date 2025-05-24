@@ -1,13 +1,11 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Ora.GameManaging.Mafia.Data;
+using Ora.GameManaging.Mafia.Data.Repositories;
+using Ora.GameManaging.Mafia.Infrastructure.Services;
 using Ora.GameManaging.Mafia.Protos;
-using Ora.GameManaging.Mafia.Repositories;
-using Ora.GameManaging.Mafia.Services;
 using System.Security.Claims;
 using System.Text;
 

@@ -17,6 +17,7 @@ message GetRoomByIdRequest {
 
 message GetRoomByAppIdRequest {
   string app_id = 1;
+   Pagination pagination = 2;
 }
 
 message CreateRoomRequest {
@@ -52,4 +53,10 @@ message GameRoomDto {
   int32 turn_duration_seconds = 3;
   string current_turn_players = 4;
   string created_at = 5;
+}
+
+message Pagination {
+  int32 size = 1;
+  int32 skip = 2;
+  bool count = 3;
 }

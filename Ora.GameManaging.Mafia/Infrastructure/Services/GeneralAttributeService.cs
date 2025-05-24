@@ -1,7 +1,7 @@
 using Ora.GameManaging.Mafia.Data;
-using Ora.GameManaging.Mafia.Repositories;
+using Ora.GameManaging.Mafia.Data.Repositories;
 
-namespace Ora.GameManaging.Mafia.Services
+namespace Ora.GameManaging.Mafia.Infrastructure.Services
 {
     public class GeneralAttributeService(GeneralAttributeRepository repository) : IGeneralAttributeService
     {

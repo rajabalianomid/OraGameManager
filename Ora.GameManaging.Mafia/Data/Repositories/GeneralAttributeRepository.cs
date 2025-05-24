@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Ora.GameManaging.Mafia.Data;
 
-namespace Ora.GameManaging.Mafia.Repositories
+namespace Ora.GameManaging.Mafia.Data.Repositories
 {
     public class GeneralAttributeRepository(MafiaDbContext context)
     {

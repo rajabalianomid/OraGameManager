@@ -1,6 +1,6 @@
 using Ora.GameManaging.Mafia.Data;
 
-namespace Ora.GameManaging.Mafia.Services
+namespace Ora.GameManaging.Mafia.Infrastructure.Services
 {
     public interface IGeneralAttributeService
     {

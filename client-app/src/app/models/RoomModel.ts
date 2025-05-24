@@ -2,13 +2,13 @@ export interface RoomModel {
     actionTime: number;
     canGodFatherShowByDetective: boolean;
     challengeTime: number;
-    clientId: number;
+    appId: number;
     defensedTime: number;
     description: string;
     expireTime: string;
     finalVoteTime: number;
     firstVoteTime: number;
-    id: number;
+    roomId: string;
     isChallenge: boolean;
     maxPlayer: number;
     name: string;

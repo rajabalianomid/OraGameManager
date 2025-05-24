@@ -22,6 +22,7 @@ export default class RoomStore {
     loadRooms = async (page: number) => {
         this.loading = true;
         try {
+            debugger;
             const result = await agent.Rooms.getRooms(page, this.rooms.size);
             runInAction(() => {
                 this.rooms = {
