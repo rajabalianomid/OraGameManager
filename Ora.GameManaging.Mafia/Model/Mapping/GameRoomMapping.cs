@@ -12,6 +12,16 @@ public static class GameRoomMapping
             TurnDurationSeconds = room.TurnDurationSeconds,
             CurrentTurnPlayers = room.CurrentTurnPlayers,
             CreatedAt = DateTime.Parse(room.CreatedAt),
+            //Description = string.IsNullOrEmpty(room.Description) ? null : room.Description,
+            //Owner = string.IsNullOrEmpty(room.Owner) ? null : room.Owner,
+            //ExpireTime = string.IsNullOrEmpty(room.ExpireTime) ? null : DateTime.Parse(room.ExpireTime),
+            //MaxPlayer = room.MaxPlayer != 0 ? room.MaxPlayer : null,
+            //IsChallenge = room.IsChallenge,
+            //SpeakTime = room.SpeakTime != 0 ? room.SpeakTime : null,
+            //ChallengeTime = room.ChallengeTime != 0 ? room.ChallengeTime : null,
+            //DefensedTime = room.DefensedTime != 0 ? room.DefensedTime : null,
+            //ActionTime = room.ActionTime != 0 ? room.ActionTime : null,
+            //FirstVoteTime = room.FirstVoteTime != 0 ? room.FirstVoteTime : null,
         };
     }
 

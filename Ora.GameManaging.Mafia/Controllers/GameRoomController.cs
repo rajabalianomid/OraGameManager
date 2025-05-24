@@ -3,12 +3,13 @@ using Microsoft.AspNetCore.Mvc;
 using Ora.GameManaging.Mafia.Protos;
 using Ora.GameManaging.Mafia.Model;
 using Ora.GameManaging.Mafia.Model.Mapping;
+using Ora.GameManaging.Mafia.Services;
 
 namespace Ora.GameManaging.Mafia.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class GameRoomController(GrpcClientFactory clientFactory) : ControllerBase
+    public class GameRoomController(GrpcClientFactory clientFactory, IGeneralAttributeService generalAttributeService) : ControllerBase
     {
         private readonly GameRoomGrpc.GameRoomGrpcClient _gameRoomClient = clientFactory.CreateClient<GameRoomGrpc.GameRoomGrpcClient>("GameManaging");
 
@@ -30,12 +31,25 @@ namespace Ora.GameManaging.Mafia.Controllers
         }
 
         [HttpGet("by-app/{appId}")]
-        public async Task<ActionResult<GameRoomModel>> GetByAppId(string appId, CancellationToken cancellationToken)
+        public async Task<ActionResult<List<GameRoomModel>>> GetAllByAppId(string appId, CancellationToken cancellationToken)
         {
-            var response = await _gameRoomClient.GetRoomByAppIdAsync(new GetRoomByAppIdRequest { AppId = appId }, cancellationToken: cancellationToken);
-            if (response.Room == null)
-                return NotFound();
-            return Ok(response.Room.ToModel());
+            var response = await _gameRoomClient.GetRoomsByAppIdAsync(new GetRoomByAppIdRequest { AppId = appId }, cancellationToken: cancellationToken);
+            var rooms = response.Rooms.Select(r => r.ToModel()).ToList();
+
+            var attributes = await generalAttributeService.GetAllByApplicationIdAsync(appId, EntityKeys.GameRoom);
+            var attributesByRoom = attributes
+                .GroupBy(a => a.EntityId)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            rooms.ForEach(room =>
+            {
+                if (attributesByRoom.TryGetValue(room.RoomId, out var roomAttributes))
+                {
+                    AttributeReflectionHelper.ApplyAttributesToModel(room, roomAttributes);
+                }
+            });
+
+            return Ok(rooms);
         }
 
         [HttpPost]

@@ -6,11 +6,9 @@ using System.Reflection.Emit;
 
 namespace Ora.GameManaging.Mafia.Data
 {
-    public class MafiaDbContext : IdentityDbContext<ApplicationUser>
+    public class MafiaDbContext(DbContextOptions<MafiaDbContext> options) : IdentityDbContext<ApplicationUser>(options)
     {
-        public MafiaDbContext(DbContextOptions<MafiaDbContext> options) : base(options)
-        {
-        }
+        public DbSet<GeneralAttributeEntity> GeneralAttributes { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -25,6 +23,7 @@ namespace Ora.GameManaging.Mafia.Data
             builder.Entity<IdentityUserToken<string>>().ToTable("UserTokens");
 
             builder.ApplyConfiguration(new ApplicationEntityConfiguration());
+            builder.ApplyConfiguration(new GeneralAttributeEntityConfiguration());
         }
     }
 }

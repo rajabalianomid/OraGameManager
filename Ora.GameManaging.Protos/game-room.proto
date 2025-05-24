@@ -4,7 +4,7 @@ option csharp_namespace = "Ora.GameManaging.Mafia.Protos";
 
 service GameRoomGrpc {
   rpc GetRoomById (GetRoomByIdRequest) returns (GameRoomReply);
-  rpc GetRoomByAppId (GetRoomByAppIdRequest) returns (GameRoomReply);
+  rpc GetRoomsByAppId (GetRoomByAppIdRequest) returns (GetAllRoomsReply);
   rpc CreateRoom (CreateRoomRequest) returns (BoolReply);
   rpc UpdateRoom (UpdateRoomRequest) returns (BoolReply);
   rpc DeleteRoom (DeleteRoomRequest) returns (BoolReply);

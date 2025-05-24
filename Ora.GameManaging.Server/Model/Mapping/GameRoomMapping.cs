@@ -13,7 +13,7 @@ namespace Ora.GameManaging.Server.Model.Mapping
                 RoomId = entity.RoomId,
                 TurnDurationSeconds = entity.TurnDurationSeconds,
                 CurrentTurnPlayers = entity.CurrentTurnPlayers ?? string.Empty,
-                CreatedAt = entity.CreatedAt.ToString("o"),
+                CreatedAt = entity.CreatedAt.ToString("o")
             };
         }
 

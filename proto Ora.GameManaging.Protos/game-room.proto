@@ -1,0 +1,23 @@
+message GameRoomDto {
+  string room_id = 1;
+  string app_id = 2;
+  int32 turn_duration_seconds = 3;
+  string current_turn_players = 4;
+  string created_at = 5;
+
+  // --- Added fields ---
+  string description = 6;
+  string owner = 7;
+  string expire_time = 8;
+  int32 max_player = 9;
+  bool is_challenge = 10;
+  int32 speak_time = 11;
+  int32 challenge_time = 12;
+  int32 defensed_time = 13;
+  int32 action_time = 14;
+  int32 first_vote_time = 15;
+  int32 final_vote_time = 16;
+  bool can_god_father_show_by_detective = 17;
+  bool has_meeting = 18;
+  string expire_time_meeting = 19;
+}

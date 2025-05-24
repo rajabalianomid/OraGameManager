@@ -28,12 +28,12 @@ namespace Ora.GameManaging.Server.Data.Repositories
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<GameRoomEntity?> GetByAppIdAsync(string appId, CancellationToken cancellationToken = default)
+        public async Task<List<GameRoomEntity>> GetByAppIdAsync(string appId, CancellationToken cancellationToken = default)
         {
             return await db.Rooms
                 .Include(r => r.Players)
                 .Include(r => r.Events)
-                .FirstOrDefaultAsync(r => r.AppId == appId, cancellationToken);
+                .Where(r => r.AppId == appId).ToListAsync(cancellationToken);
         }
 
         public async Task<GameRoomEntity?> GetByIdAsync(string roomId, CancellationToken cancellationToken = default)

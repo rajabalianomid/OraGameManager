@@ -32,7 +32,7 @@ Host.CreateDefaultBuilder(args)
             }
             var JwtSecurityKey = Encoding.ASCII.GetBytes(jwtSecurityKey);
 
-            services.AddDbContext<GameDbContext>(options => options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+            services.AddDbContext<GameDbContext>(options => options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")).EnableSensitiveDataLogging(false));
             services.AddAuthentication(x =>
             {
                 x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;

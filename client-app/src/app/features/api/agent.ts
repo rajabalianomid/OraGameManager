@@ -4,7 +4,7 @@ import { Pagination } from "../../models/Pagination";
 import { RoomModel } from "../../models/RoomModel";
 import { videoCallToken } from "../../models/VideoCallToken";
 
-axios.defaults.baseURL = 'https://localhost:7210';
+axios.defaults.baseURL = 'https://localhost:7141';
 
 const responseBody = (response: AxiosResponse) => response.data;
 

@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Ora.GameManaging.Mafia.Data;
 using Ora.GameManaging.Mafia.Protos;
+using Ora.GameManaging.Mafia.Repositories;
 using Ora.GameManaging.Mafia.Services;
 using System.Security.Claims;
 using System.Text;
@@ -22,6 +23,11 @@ var config = new ConfigurationBuilder().SetBasePath(Directory.GetCurrentDirector
 
 builder.Services.AddControllers();
 builder.Services.AddGrpc();
+//Add Repositorys
+builder.Services.AddScoped<GeneralAttributeRepository>();
+//Add Services
+builder.Services.AddScoped<IGeneralAttributeService, GeneralAttributeService>();
+
 builder.Services.AddSwaggerGen();
 builder.Services.AddCors(opt =>
 {
@@ -34,7 +40,7 @@ builder.Services.AddCors(opt =>
             .AllowCredentials();
     });
 });
-builder.Services.AddDbContext<MafiaDbContext>(options => options.UseSqlServer(config.GetConnectionString("DefaultConnection")));
+builder.Services.AddDbContext<MafiaDbContext>(options => options.UseSqlServer(config.GetConnectionString("DefaultConnection")).EnableSensitiveDataLogging(false));
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
     options.Password.RequiredLength = 8;
@@ -42,14 +48,12 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
     options.Password.RequireNonAlphanumeric = false;
 }).AddRoles<IdentityRole>().AddEntityFrameworkStores<MafiaDbContext>();
 builder.Logging.AddFilter("Microsoft.EntityFrameworkCore.Database.Command", Microsoft.Extensions.Logging.LogLevel.None);
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy(JwtBearerDefaults.AuthenticationScheme, policy =>
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy(JwtBearerDefaults.AuthenticationScheme, policy =>
     {
         policy.AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme);
         policy.RequireClaim(ClaimTypes.NameIdentifier);
     });
-});
 builder.Services.AddAuthentication(x =>
 {
     x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
