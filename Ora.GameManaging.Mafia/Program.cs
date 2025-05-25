@@ -5,6 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using Ora.GameManaging.Mafia.Data;
 using Ora.GameManaging.Mafia.Data.Repositories;
 using Ora.GameManaging.Mafia.Infrastructure.Services;
+using Ora.GameManaging.Mafia.Infrastructure.Services.Proxy;
 using Ora.GameManaging.Mafia.Protos;
 using System.Security.Claims;
 using System.Text;
@@ -25,6 +26,8 @@ builder.Services.AddGrpc();
 builder.Services.AddScoped<GeneralAttributeRepository>();
 //Add Services
 builder.Services.AddScoped<IGeneralAttributeService, GeneralAttributeService>();
+//Grpc
+builder.Services.AddSingleton<GameRoomProxy>();
 
 builder.Services.AddSwaggerGen();
 builder.Services.AddCors(opt =>

@@ -33,6 +33,7 @@ function GamePlan() {
                 model = { id: Number(roomId) };
             }
             try {
+                debugger;
                 const user = profileStore.logedInUSer();
                 if (user?.userName) {
                     const result = await communicationStore.addUserToRoom(user.userName, model);

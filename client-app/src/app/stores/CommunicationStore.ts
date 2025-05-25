@@ -33,7 +33,7 @@ export default class CommunicationStore {
         try {
             if (!this.connection) {
                 this.connection = new HubConnectionBuilder()
-                    .withUrl("https://localhost:7210/gamehub", {
+                    .withUrl("https://localhost:5001/gamehub", {
                         accessTokenFactory: () => jwtToken,
                         withCredentials: true,
                     })

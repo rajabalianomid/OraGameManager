@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR;
 using Ora.GameManaging.Server.Data.Repositories;
 using Ora.GameManaging.Server.Infrastructure;
 using Ora.GameManaging.Server.Models;
@@ -8,6 +10,7 @@ using System.Text.Json;
 
 namespace Ora.GameManaging.Server
 {
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class GameHub : Hub
     {
         // Key: AppId:RoomId

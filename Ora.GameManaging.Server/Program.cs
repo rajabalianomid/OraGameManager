@@ -19,9 +19,14 @@ Host.CreateDefaultBuilder(args)
          config.SetBasePath(Directory.GetCurrentDirectory());
          config.AddJsonFile("appsettings.json", optional: true);
      })
+     .ConfigureLogging(logging =>
+     {
+         logging.ClearProviders();
+         logging.AddConsole();
+         logging.SetMinimumLevel(LogLevel.Warning);
+     })
     .ConfigureWebHostDefaults((webBuilder) =>
     {
-        webBuilder.UseUrls("http://localhost:5000", "https://localhost:5001");
         webBuilder.ConfigureServices((context, services) =>
         {
             var configuration = context.Configuration;
@@ -32,7 +37,18 @@ Host.CreateDefaultBuilder(args)
             }
             var JwtSecurityKey = Encoding.ASCII.GetBytes(jwtSecurityKey);
 
-            services.AddDbContext<GameDbContext>(options => options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")).EnableSensitiveDataLogging(false));
+            services.AddCors(opt =>
+            {
+                opt.AddPolicy("CorsPolicy", policy =>
+                {
+                    policy
+                        .AllowAnyMethod()
+                        .AllowAnyHeader()
+                        .WithOrigins("https://localhost:8080")
+                        .AllowCredentials();
+                });
+            });
+            services.AddDbContext<GameDbContext>(options => options.UseSqlServer(configuration.GetConnectionString("DefaultConnection"), sql => sql.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)).EnableSensitiveDataLogging(false));
             services.AddAuthentication(x =>
             {
                 x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -102,19 +118,14 @@ Host.CreateDefaultBuilder(args)
         webBuilder.Configure(app =>
         {
             app.UseRouting();
+            app.UseCors("CorsPolicy");
+            app.UseAuthentication();
+            app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
             {
-                endpoints.MapHub<GameHub>("/gamehub");
+                endpoints.MapHub<GameHub>("/gamehub").RequireCors("CorsPolicy");
                 endpoints.MapGrpcService<GameRoomServices>();
-            });
-        });
-        webBuilder.ConfigureKestrel(options =>
-        {
-            options.ListenLocalhost(5001, listenOptions =>
-            {
-                listenOptions.UseHttps();
-                listenOptions.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http1AndHttp2;
             });
         });
     })
