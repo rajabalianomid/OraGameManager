@@ -18,6 +18,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <Protobuf Include="adapter.proto" GrpcServices="None" />
     <Protobuf Include="settings.proto">
       <GrpcServices>None</GrpcServices>
     </Protobuf>

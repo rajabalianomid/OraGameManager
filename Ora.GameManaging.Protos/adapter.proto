@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+option csharp_namespace = "Ora.GameManaging.Mafia.Protos";
+
+service AdapterGrpc {
+  rpc Run (AdapterRequest) returns (AdapterReply);
+}
+
+message AdapterRequest {
+  string type_name = 1;
+  string action = 2;
+  string model_json = 3;
+}
+
+message AdapterReply {
+  string data_json = 1;
+  string error = 2;
+}

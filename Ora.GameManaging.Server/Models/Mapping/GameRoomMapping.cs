@@ -1,7 +1,7 @@
 ﻿using Ora.GameManaging.Mafia.Protos;
 using Ora.GameManaging.Server.Data;
 
-namespace Ora.GameManaging.Server.Model.Mapping
+namespace Ora.GameManaging.Server.Models.Mapping
 {
     public static class GameRoomMapping
     {

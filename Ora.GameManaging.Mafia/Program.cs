@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Ora.GameManaging.Mafia.Data;
 using Ora.GameManaging.Mafia.Data.Repositories;
+using Ora.GameManaging.Mafia.Infrastructure;
 using Ora.GameManaging.Mafia.Infrastructure.Services;
 using Ora.GameManaging.Mafia.Infrastructure.Services.Proxy;
 using Ora.GameManaging.Mafia.Protos;
@@ -25,9 +26,10 @@ builder.Services.AddGrpc();
 //Add Repositorys
 builder.Services.AddScoped<GeneralAttributeRepository>();
 //Add Services
-builder.Services.AddScoped<ISettingService, SettingService>();
+builder.Services.AddScoped<SettingService>();
 //Grpc
 builder.Services.AddScoped<GameRoomProxy>();
+builder.Services.AddScoped<AdapterHandler>();
 
 builder.Services.AddSwaggerGen();
 builder.Services.AddCors(opt =>
@@ -96,7 +98,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 // Configure the HTTP request pipeline.
 app.MapGrpcService<GreeterService>();
-app.MapGrpcService<SettingService>();
+app.MapGrpcService<AdapterHandler>();
 
 app.MapGet("/", () => "Communication with gRPC endpoints must be made through a gRPC client. To learn how to create a client, visit: https://go.microsoft.com/fwlink/?linkid=2086909");
 

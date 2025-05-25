@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Ora.GameManaging.Mafia.Protos;
 using Ora.GameManaging.Server.Data;
 using Ora.GameManaging.Server.Data.Repositories;
-using Ora.GameManaging.Server.Model.Mapping;
+using Ora.GameManaging.Server.Models.Mapping;
 using System.Threading;
 
 namespace Ora.GameManaging.Server.Infrastructure.Services

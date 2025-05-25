@@ -9,6 +9,7 @@ using Ora.GameManaging.Server.Models;
 using System.Collections.Concurrent;
 using System.Numerics;
 using System.Text.Json;
+using static Ora.GameManaging.Mafia.Protos.AdapterGrpc;
 using static Ora.GameManaging.Mafia.Protos.SettingGrpc;
 
 namespace Ora.GameManaging.Server
@@ -208,8 +209,8 @@ namespace Ora.GameManaging.Server
                 await Clients.Caller.SendAsync("Error", "You are already in this room.");
                 return;
             }
-            var roleReply = await _clientFactory.CreateClient<SettingGrpcClient>("Mafia_Setting").GetNextAvailableRoleAsync(new Mafia.Protos.GetSettingRoomByIdRequest { RoomId = roomId });
-            var player = new PlayerInfo { ConnectionId = Context.ConnectionId, UserId = userId, Name = playerName, Role = roleReply.Role };
+            var roleReply = await _clientFactory.CreateClient<AdapterGrpcClient>("Mafia_Adapter").RunAsync(new Mafia.Protos.AdapterRequest { Action = "GetNextAvailableRoleAsync", ModelJson = JsonSerializer.Serialize(new Models.Adapter.NextRoleModel { ApplicationInstanceId = appId, RoomId = roomId }), TypeName = "SettingService" });
+            var player = new PlayerInfo { ConnectionId = Context.ConnectionId, UserId = userId, Name = playerName, Role = "roleReply.Role" };
             room.Players.TryAdd(userId, player);
 
             var dbRoom = await _roomRepo.GetByRoomIdAsync(appId, roomId);
@@ -218,11 +219,11 @@ namespace Ora.GameManaging.Server
                 await Clients.Caller.SendAsync("Error", $"Room {roomId} not found in DB.");
                 return;
             }
-            await _playerRepo.AddToRoomAsync(appId, roomId, Context.ConnectionId, userId, playerName, roleReply.Role, (int)PlayerStatus.Online);
+            await _playerRepo.AddToRoomAsync(appId, roomId, Context.ConnectionId, userId, playerName, "roleReply.Role", (int)PlayerStatus.Online);
 
             await _playerRepo.UpdateLastSeenAsync(appId, roomId, userId, DateTime.UtcNow);
 
-            await _eventRepo.AddAsync(dbRoom.Id, "PlayerJoined", playerName, roleReply.Role);
+            await _eventRepo.AddAsync(dbRoom.Id, "PlayerJoined", playerName, "roleReply.Role");
 
             await Groups.AddToGroupAsync(Context.ConnectionId, key);
             await _notification.SendPlayerJoined(key, playerName);
