@@ -13,7 +13,7 @@ namespace Ora.GameManaging.Mafia.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
-    public class GameRoomController(GameRoomProxy gameRoomProxy, IGeneralAttributeService generalAttributeService) : ControllerBase
+    public class GameRoomController(GameRoomProxy gameRoomProxy) : ControllerBase
     {
         [HttpGet]
         public async Task<ActionResult<List<GameRoomModel>>> GetAll(CancellationToken cancellationToken)
@@ -35,7 +35,7 @@ namespace Ora.GameManaging.Mafia.Controllers
         [HttpPost("by-app")]
         public async Task<ActionResult<List<GameRoomModel>>> GetAllByAppId(RoomRequestModel requestModel, CancellationToken cancellationToken)
         {
-            var result = await gameRoomProxy.PrepareRoomByAppIdAsync(requestModel, generalAttributeService, cancellationToken);
+            var result = await gameRoomProxy.PrepareRoomByAppIdAsync(requestModel, cancellationToken);
             return Ok(result);
         }
 

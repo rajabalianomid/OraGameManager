@@ -30,7 +30,8 @@
     <PackageReference Include="System.Formats.Asn1" Version="9.0.5" />
   </ItemGroup>
   <ItemGroup>
-    <Protobuf Include="..\Ora.GameManaging.Protos\greet.proto" GrpcServices="Client" />
     <Protobuf Include="..\Ora.GameManaging.Protos\game-room.proto" GrpcServices="Server" />
+    <Protobuf Include="..\Ora.GameManaging.Protos\greet.proto" GrpcServices="Client" />
+    <Protobuf Include="..\Ora.GameManaging.Protos\settings.proto" GrpcServices="Client" />
   </ItemGroup>
 </Project>

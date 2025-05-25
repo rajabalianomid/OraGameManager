@@ -1,12 +1,15 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using Grpc.Net.ClientFactory;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using Ora.GameManaging.Server.Data.Migrations;
 using Ora.GameManaging.Server.Data.Repositories;
 using Ora.GameManaging.Server.Infrastructure;
 using Ora.GameManaging.Server.Models;
 using System.Collections.Concurrent;
 using System.Numerics;
 using System.Text.Json;
+using static Ora.GameManaging.Mafia.Protos.SettingGrpc;
 
 namespace Ora.GameManaging.Server
 {
@@ -16,6 +19,7 @@ namespace Ora.GameManaging.Server
         // Key: AppId:RoomId
         private static ConcurrentDictionary<string, GameRoom> Rooms = new();
 
+        private readonly GrpcClientFactory _clientFactory;
         private readonly GameRoomRepository _roomRepo;
         private readonly PlayerRepository _playerRepo;
         private readonly EventRepository _eventRepo;
@@ -23,12 +27,14 @@ namespace Ora.GameManaging.Server
         private readonly TurnManager _turnManager;
 
         public GameHub(
+            GrpcClientFactory clientFactory,
             GameRoomRepository roomRepo,
             PlayerRepository playerRepo,
             EventRepository eventRepo,
             NotificationManager notification,
             TurnManager turnManager)
         {
+            _clientFactory = clientFactory;
             _roomRepo = roomRepo;
             _playerRepo = playerRepo;
             _eventRepo = eventRepo;
@@ -182,6 +188,41 @@ namespace Ora.GameManaging.Server
             await _playerRepo.UpdateLastSeenAsync(appId, roomId, userId, DateTime.UtcNow);
 
             await _eventRepo.AddAsync(dbRoom.Id, "PlayerJoined", playerName, role);
+
+            await Groups.AddToGroupAsync(Context.ConnectionId, key);
+            await _notification.SendPlayerJoined(key, playerName);
+            await _roomRepo.SaveSnapshotAsync(appId, roomId, SerializeRoom(room));
+        }
+
+        public async Task JoinRoomAuto(string appId, string roomId, string playerName)
+        {
+            var userId = $"{appId}:{playerName}";
+            var key = $"{appId}:{roomId}";
+            if (!Rooms.TryGetValue(key, out var room))
+            {
+                await Clients.Caller.SendAsync("Error", $"Room {roomId} does not exist.");
+                return;
+            }
+            if (room.Players.ContainsKey(userId))
+            {
+                await Clients.Caller.SendAsync("Error", "You are already in this room.");
+                return;
+            }
+            var roleReply = await _clientFactory.CreateClient<SettingGrpcClient>("Mafia_Setting").GetNextAvailableRoleAsync(new Mafia.Protos.GetSettingRoomByIdRequest { RoomId = roomId });
+            var player = new PlayerInfo { ConnectionId = Context.ConnectionId, UserId = userId, Name = playerName, Role = roleReply.Role };
+            room.Players.TryAdd(userId, player);
+
+            var dbRoom = await _roomRepo.GetByRoomIdAsync(appId, roomId);
+            if (dbRoom == null)
+            {
+                await Clients.Caller.SendAsync("Error", $"Room {roomId} not found in DB.");
+                return;
+            }
+            await _playerRepo.AddToRoomAsync(appId, roomId, Context.ConnectionId, userId, playerName, roleReply.Role, (int)PlayerStatus.Online);
+
+            await _playerRepo.UpdateLastSeenAsync(appId, roomId, userId, DateTime.UtcNow);
+
+            await _eventRepo.AddAsync(dbRoom.Id, "PlayerJoined", playerName, roleReply.Role);
 
             await Groups.AddToGroupAsync(Context.ConnectionId, key);
             await _notification.SendPlayerJoined(key, playerName);

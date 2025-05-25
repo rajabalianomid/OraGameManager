@@ -18,6 +18,9 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <Protobuf Include="settings.proto">
+      <GrpcServices>None</GrpcServices>
+    </Protobuf>
     <Protobuf Include="game-room.proto">
       <GrpcServices>None</GrpcServices>
     </Protobuf>

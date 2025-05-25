@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+option csharp_namespace = "Ora.GameManaging.Mafia.Protos";
+
+service SettingGrpc {
+  rpc GetNextAvailableRole (GetSettingRoomByIdRequest) returns (GameNextRoleReply);
+}
+
+message GetSettingRoomByIdRequest {
+  string application_instance_id=1;
+  string room_id = 2;
+}
+
+message GameNextRoleReply {
+  string role = 1;
+}
+
+// Map your GameRoomEntity to this DTO
+message SettingRoomDto {
+  string available_roles = 1;
+  string assigned_roles = 2;
+}

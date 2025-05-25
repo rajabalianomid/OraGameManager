@@ -156,26 +156,23 @@ export default class CommunicationStore {
     };
 
 
-    async addUserToRoom(userName: string, model: CurrentRoomModel): Promise<CurrentRoomModel | null> {
-        debugger;
+    async addUserToRoom(appId: string, roomId: string, playerName: string): Promise<void> {
         try {
             if (!this.connection) {
                 console.error("Connection is not established.");
-                return null;
+                return;
             }
 
-            const result = await this.connection?.invoke(
-                "AddUserToRoom", // The hub method name
-                userName,
-                model
+            await this.connection.invoke(
+                "JoinRoomAuto",
+                appId,
+                roomId,
+                playerName
             );
-            debugger;
-            localStorage.setItem('currentRoom', result.room.id);
-            console.log("User added to room:", result);
-            return result;
+            localStorage.setItem('currentRoom', roomId);
+            console.log("User added to room:", { appId, roomId, playerName });
         } catch (error) {
-            console.error("Error adding user to room:");
-            return null;
+            console.error("Error adding user to room:", error);
         }
     }
 

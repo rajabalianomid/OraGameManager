@@ -25,9 +25,9 @@ builder.Services.AddGrpc();
 //Add Repositorys
 builder.Services.AddScoped<GeneralAttributeRepository>();
 //Add Services
-builder.Services.AddScoped<IGeneralAttributeService, GeneralAttributeService>();
+builder.Services.AddScoped<ISettingService, SettingService>();
 //Grpc
-builder.Services.AddSingleton<GameRoomProxy>();
+builder.Services.AddScoped<GameRoomProxy>();
 
 builder.Services.AddSwaggerGen();
 builder.Services.AddCors(opt =>
@@ -96,6 +96,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 // Configure the HTTP request pipeline.
 app.MapGrpcService<GreeterService>();
+app.MapGrpcService<SettingService>();
 
 app.MapGet("/", () => "Communication with gRPC endpoints must be made through a gRPC client. To learn how to create a client, visit: https://go.microsoft.com/fwlink/?linkid=2086909");
 

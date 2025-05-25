@@ -10,6 +10,7 @@ using Ora.GameManaging.Server.Infrastructure;
 using Ora.GameManaging.Server.Infrastructure.Proxy;
 using Ora.GameManaging.Server.Infrastructure.Services;
 using System.Text;
+using static Ora.GameManaging.Mafia.Protos.SettingGrpc;
 
 // Rest of the code remains unchanged
 
@@ -106,7 +107,11 @@ Host.CreateDefaultBuilder(args)
 
             foreach (var server in grpcServers)
             {
-                services.AddGrpcClient<Greeter.GreeterClient>(server.Key, o =>
+                services.AddGrpcClient<Greeter.GreeterClient>($"{server.Key}_Greeter", o =>
+                {
+                    o.Address = new Uri(server.Value);
+                });
+                services.AddGrpcClient<SettingGrpcClient>($"{server.Key}_Setting", o =>
                 {
                     o.Address = new Uri(server.Value);
                 });

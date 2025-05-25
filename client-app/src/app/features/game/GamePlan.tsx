@@ -6,6 +6,7 @@ import GamePlayers from "./GamePlayes";
 import { observer } from "mobx-react-lite";
 import GameAction from "./GameAction";
 import { useParams } from "react-router-dom";
+import { AppConfig } from "../../models/AppConfig";
 
 function GamePlan() {
 
@@ -36,10 +37,14 @@ function GamePlan() {
                 debugger;
                 const user = profileStore.logedInUSer();
                 if (user?.userName) {
-                    const result = await communicationStore.addUserToRoom(user.userName, model);
-                    console.log("User added to room:", result);
+                    await communicationStore.addUserToRoom(
+                        AppConfig.appId,
+                        roomId,
+                        user.userName
+                    );
+                    console.log("User added to room");
                 } else {
-                    console.error("User name is undefined.");
+                    console.error("User info is incomplete.");
                 }
             } catch (error) {
                 console.error("Failed to add user to room:", error);

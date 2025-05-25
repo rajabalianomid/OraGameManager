@@ -1,26 +1,18 @@
 ﻿using Grpc.Net.ClientFactory;
-using Ora.GameManaging.Mafia.Protos;
-using System.Security.AccessControl;
-using static Ora.GameManaging.Mafia.Protos.GameRoomGrpc;
+using Ora.GameManaging.Mafia.Data;
+using Ora.GameManaging.Mafia.Data.Repositories;
 using Ora.GameManaging.Mafia.Model;
 using Ora.GameManaging.Mafia.Model.Mapping;
-using Ora.GameManaging.Mafia.Infrastructure.Services;
+using Ora.GameManaging.Mafia.Protos;
+using static Ora.GameManaging.Mafia.Protos.GameRoomGrpc;
 
 namespace Ora.GameManaging.Mafia.Infrastructure.Services.Proxy
 {
-    public class GameRoomProxy
+    public class GameRoomProxy(GrpcClientFactory clientFactory, GeneralAttributeRepository generalAttributeRepository)
     {
-        public GameRoomGrpcClient Instance { get; set; }
+        public GameRoomGrpcClient Instance { get; set; } = clientFactory.CreateClient<GameRoomGrpcClient>("GameManaging");
 
-        public GameRoomProxy(GrpcClientFactory clientFactory)
-        {
-            Instance = clientFactory.CreateClient<GameRoomGrpcClient>("GameManaging");
-        }
-
-        public async Task<RoomResultModel> PrepareRoomByAppIdAsync(
-            RoomRequestModel requestModel,
-            IGeneralAttributeService generalAttributeService,
-            CancellationToken cancellationToken)
+        public async Task<RoomResultModel> PrepareRoomByAppIdAsync(RoomRequestModel requestModel, CancellationToken cancellationToken)
         {
             var response = await Instance.GetRoomsByAppIdAsync(
                 new GetRoomByAppIdRequest
@@ -37,7 +29,7 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services.Proxy
 
             var rooms = response.Rooms.Select(r => r.ToModel()).ToList();
 
-            var attributes = await generalAttributeService.GetAllByApplicationIdAsync(requestModel.AppId, EntityKeys.GameRoom);
+            var attributes = await generalAttributeRepository.GetEntitiesAsync(requestModel.AppId, EntityKeys.GameRoom);
             var attributesByRoom = attributes
                 .GroupBy(a => a.EntityId)
                 .ToDictionary(g => g.Key, g => g.ToList());
