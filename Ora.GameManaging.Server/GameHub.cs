@@ -2,46 +2,29 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
-using Ora.GameManaging.Server.Data.Migrations;
 using Ora.GameManaging.Server.Data.Repositories;
 using Ora.GameManaging.Server.Infrastructure;
+using Ora.GameManaging.Server.Infrastructure.Proxy;
 using Ora.GameManaging.Server.Models;
+using Ora.GameManaging.Server.Models.Adapter;
 using System.Collections.Concurrent;
 using System.Numerics;
 using System.Text.Json;
 using static Ora.GameManaging.Mafia.Protos.AdapterGrpc;
-using static Ora.GameManaging.Mafia.Protos.SettingGrpc;
 
 namespace Ora.GameManaging.Server
 {
-    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-    public class GameHub : Hub
+    //[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    public class GameHub(
+        GrpcAdapter adapterFactory,
+        GameRoomRepository roomRepo,
+        PlayerRepository playerRepo,
+        EventRepository eventRepo,
+        NotificationManager notification,
+        TurnManager turnManager) : Hub
     {
         // Key: AppId:RoomId
         private static ConcurrentDictionary<string, GameRoom> Rooms = new();
-
-        private readonly GrpcClientFactory _clientFactory;
-        private readonly GameRoomRepository _roomRepo;
-        private readonly PlayerRepository _playerRepo;
-        private readonly EventRepository _eventRepo;
-        private readonly NotificationManager _notification;
-        private readonly TurnManager _turnManager;
-
-        public GameHub(
-            GrpcClientFactory clientFactory,
-            GameRoomRepository roomRepo,
-            PlayerRepository playerRepo,
-            EventRepository eventRepo,
-            NotificationManager notification,
-            TurnManager turnManager)
-        {
-            _clientFactory = clientFactory;
-            _roomRepo = roomRepo;
-            _playerRepo = playerRepo;
-            _eventRepo = eventRepo;
-            _notification = notification;
-            _turnManager = turnManager;
-        }
 
         // Database to memory loader
         public static async Task LoadAllRoomsAsync(GameRoomRepository repo)
@@ -101,16 +84,36 @@ namespace Ora.GameManaging.Server
         public async Task Reconnect(string appId, string userId)
         {
             var connectionId = Context.ConnectionId;
-            var rooms = await _playerRepo.GetRoomsForUser(appId, userId);
+            var rooms = await playerRepo.GetRoomsForUser(appId, userId);
             foreach (var roomId in rooms)
             {
                 var key = $"{appId}:{roomId}";
-                await _playerRepo.UpdatePlayerConnectionId(appId, roomId, userId, connectionId);
-                await _playerRepo.UpdateLastSeenAsync(appId, roomId, userId, DateTime.UtcNow);
+                await playerRepo.UpdatePlayerConnectionId(appId, roomId, userId, connectionId);
+                await playerRepo.UpdateLastSeenAsync(appId, roomId, userId, DateTime.UtcNow);
+
                 if (Rooms.TryGetValue(key, out var room))
                 {
-                    if (room.Players.TryGetValue(userId, out var player))
+                    if (!room.Players.TryGetValue(userId, out var player))
+                    {
+                        var dbRoom = await roomRepo.GetByRoomIdAsync(appId, roomId);
+                        var dbPlayer = dbRoom?.Players.FirstOrDefault(p => p.UserId == userId);
+                        if (dbPlayer != null)
+                        {
+                            player = new PlayerInfo
+                            {
+                                ConnectionId = connectionId,
+                                UserId = dbPlayer.UserId,
+                                Name = dbPlayer.Name,
+                                Role = dbPlayer.Role,
+                                Status = (PlayerStatus)dbPlayer.Status
+                            };
+                            room.Players.TryAdd(userId, player);
+                        }
+                    }
+                    else
+                    {
                         player.ConnectionId = connectionId;
+                    }
                 }
                 await Groups.AddToGroupAsync(connectionId, key);
             }
@@ -127,8 +130,8 @@ namespace Ora.GameManaging.Server
             }
             var room = new GameRoom(appId, roomId);
             Rooms[key] = room;
-            var dbRoom = await _roomRepo.CreateAsync(appId, roomId, room.TurnDurationSeconds);
-            await _eventRepo.AddAsync(dbRoom.Id, "RoomCreated", null, null);
+            var dbRoom = await roomRepo.CreateAsync(appId, roomId, room.TurnDurationSeconds);
+            await eventRepo.AddAsync(dbRoom.Id, "RoomCreated", null, null);
 
             Console.WriteLine($"Room created: {key}");
             await Clients.All.SendAsync("RoomCreated", roomId);
@@ -139,15 +142,15 @@ namespace Ora.GameManaging.Server
             var key = $"{appId}:{roomId}";
             if (Rooms.TryRemove(key, out var removedRoom))
             {
-                _turnManager.Cancel(key);
+                turnManager.Cancel(key);
                 foreach (var player in removedRoom.Players.Values)
                     await Groups.RemoveFromGroupAsync(player.ConnectionId, key);
 
-                var dbRoom = await _roomRepo.GetByRoomIdAsync(appId, roomId);
+                var dbRoom = await roomRepo.GetByRoomIdAsync(appId, roomId);
                 if (dbRoom != null)
                 {
-                    await _eventRepo.AddAsync(dbRoom.Id, "RoomDeleted", null, null);
-                    await _roomRepo.RemoveAsync(appId, roomId);
+                    await eventRepo.AddAsync(dbRoom.Id, "RoomDeleted", null, null);
+                    await roomRepo.RemoveAsync(appId, roomId);
                 }
                 Console.WriteLine($"Room deleted: {key}");
                 await Clients.All.SendAsync("RoomDeleted", roomId);
@@ -178,21 +181,21 @@ namespace Ora.GameManaging.Server
             var player = new PlayerInfo { ConnectionId = Context.ConnectionId, UserId = userId, Name = playerName, Role = role };
             room.Players.TryAdd(userId, player);
 
-            var dbRoom = await _roomRepo.GetByRoomIdAsync(appId, roomId);
+            var dbRoom = await roomRepo.GetByRoomIdAsync(appId, roomId);
             if (dbRoom == null)
             {
                 await Clients.Caller.SendAsync("Error", $"Room {roomId} not found in DB.");
                 return;
             }
-            await _playerRepo.AddToRoomAsync(appId, roomId, Context.ConnectionId, userId, playerName, role, (int)PlayerStatus.Online);
+            await playerRepo.AddToRoomAsync(appId, roomId, Context.ConnectionId, userId, playerName, role, (int)PlayerStatus.Online);
 
-            await _playerRepo.UpdateLastSeenAsync(appId, roomId, userId, DateTime.UtcNow);
+            await playerRepo.UpdateLastSeenAsync(appId, roomId, userId, DateTime.UtcNow);
 
-            await _eventRepo.AddAsync(dbRoom.Id, "PlayerJoined", playerName, role);
+            await eventRepo.AddAsync(dbRoom.Id, "PlayerJoined", playerName, role);
 
             await Groups.AddToGroupAsync(Context.ConnectionId, key);
-            await _notification.SendPlayerJoined(key, playerName);
-            await _roomRepo.SaveSnapshotAsync(appId, roomId, SerializeRoom(room));
+            await notification.SendPlayerJoined(key, playerName);
+            await roomRepo.SaveSnapshotAsync(appId, roomId, SerializeRoom(room));
         }
 
         public async Task JoinRoomAuto(string appId, string roomId, string playerName)
@@ -204,30 +207,41 @@ namespace Ora.GameManaging.Server
                 await Clients.Caller.SendAsync("Error", $"Room {roomId} does not exist.");
                 return;
             }
-            if (room.Players.ContainsKey(userId))
+            if (room.Players.TryGetValue(userId, out var existingPlayer))
             {
-                await Clients.Caller.SendAsync("Error", "You are already in this room.");
-                return;
+                if (existingPlayer.ConnectionId != Context.ConnectionId)
+                {
+                    room.Players.TryRemove(userId, out _);
+                }
+                else
+                {
+                    await Clients.Caller.SendAsync("Error", "You are already in this room.");
+                    return;
+                }
             }
-            var roleReply = await _clientFactory.CreateClient<AdapterGrpcClient>("Mafia_Adapter").RunAsync(new Mafia.Protos.AdapterRequest { Action = "GetNextAvailableRoleAsync", ModelJson = JsonSerializer.Serialize(new Models.Adapter.NextRoleModel { ApplicationInstanceId = appId, RoomId = roomId }), TypeName = "SettingService" });
-            var player = new PlayerInfo { ConnectionId = Context.ConnectionId, UserId = userId, Name = playerName, Role = "roleReply.Role" };
-            room.Players.TryAdd(userId, player);
-
-            var dbRoom = await _roomRepo.GetByRoomIdAsync(appId, roomId);
+            var dbRoom = await roomRepo.GetByRoomIdAsync(appId, roomId);
             if (dbRoom == null)
             {
                 await Clients.Caller.SendAsync("Error", $"Room {roomId} not found in DB.");
                 return;
             }
-            await _playerRepo.AddToRoomAsync(appId, roomId, Context.ConnectionId, userId, playerName, "roleReply.Role", (int)PlayerStatus.Online);
 
-            await _playerRepo.UpdateLastSeenAsync(appId, roomId, userId, DateTime.UtcNow);
+            await RemovePlayerRoleIfGameNotStarted(room.AppId, room.RoomId, playerName, room, dbRoom.IsGameStarted);
 
-            await _eventRepo.AddAsync(dbRoom.Id, "PlayerJoined", playerName, "roleReply.Role");
+            var role = await adapterFactory.Do<string, NextRoleModel>(new NextRoleModel { ApplicationInstanceId = appId, RoomId = roomId, UserId = playerName });
+            var player = new PlayerInfo { ConnectionId = Context.ConnectionId, UserId = userId, Name = playerName, Role = role };
+            room.Players.TryAdd(userId, player);
+
+
+            await playerRepo.AddToRoomAsync(appId, roomId, Context.ConnectionId, userId, playerName, role, (int)PlayerStatus.Online);
+
+            await playerRepo.UpdateLastSeenAsync(appId, roomId, userId, DateTime.UtcNow);
+
+            await eventRepo.AddAsync(dbRoom.Id, "PlayerJoined", playerName, role);
 
             await Groups.AddToGroupAsync(Context.ConnectionId, key);
-            await _notification.SendPlayerJoined(key, playerName);
-            await _roomRepo.SaveSnapshotAsync(appId, roomId, SerializeRoom(room));
+            await notification.SendPlayerJoined(key, playerName);
+            await roomRepo.SaveSnapshotAsync(appId, roomId, SerializeRoom(room));
         }
 
         public async Task LeaveRoom(string appId, string roomId, string userId)
@@ -236,14 +250,16 @@ namespace Ora.GameManaging.Server
             if (!Rooms.TryGetValue(key, out var room)) return;
             if (!room.Players.TryRemove(userId, out var player)) return;
 
-            var dbRoom = await _roomRepo.GetByRoomIdAsync(appId, roomId);
+            var dbRoom = await roomRepo.GetByRoomIdAsync(appId, roomId);
             if (dbRoom == null) return;
-            await _playerRepo.RemoveFromRoomAsync(appId, roomId, userId);
-            await _eventRepo.AddAsync(dbRoom.Id, "PlayerLeft", player.Name, player.Role);
 
-            await _notification.SendPlayerLeft(key, player.Name);
+            // If game still is not started remove role assignment
+            await RemovePlayerRoleIfGameNotStarted(room.AppId, room.RoomId, player.Name, room, dbRoom.IsGameStarted);
+            await eventRepo.AddAsync(dbRoom.Id, "PlayerLeft", player.Name, player.Role);
+
+            await notification.SendPlayerLeft(key, player.Name);
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, key);
-            await _roomRepo.SaveSnapshotAsync(appId, roomId, SerializeRoom(room));
+            await roomRepo.SaveSnapshotAsync(appId, roomId, SerializeRoom(room));
         }
 
         public async Task GetPlayersInRoom(string appId, string roomId)
@@ -271,12 +287,12 @@ namespace Ora.GameManaging.Server
                 player.Status = newStatus;
                 await Clients.Group(key).SendAsync("PlayerStatusUpdated", player.Name, newStatus.ToString());
 
-                var dbRoom = await _roomRepo.GetByRoomIdAsync(appId, roomId);
+                var dbRoom = await roomRepo.GetByRoomIdAsync(appId, roomId);
                 if (dbRoom == null) return;
-                await _playerRepo.UpdateStatusAsync(appId, roomId, userId, (int)newStatus);
-                await _eventRepo.AddAsync(dbRoom.Id, "StatusChanged", player.Name, newStatus.ToString());
-                await _playerRepo.UpdateLastSeenAsync(appId, roomId, userId, DateTime.UtcNow);
-                await _roomRepo.SaveSnapshotAsync(appId, roomId, SerializeRoom(room));
+                await playerRepo.UpdateStatusAsync(appId, roomId, userId, (int)newStatus);
+                await eventRepo.AddAsync(dbRoom.Id, "StatusChanged", player.Name, newStatus.ToString());
+                await playerRepo.UpdateLastSeenAsync(appId, roomId, userId, DateTime.UtcNow);
+                await roomRepo.SaveSnapshotAsync(appId, roomId, SerializeRoom(room));
             }
             else
                 await Clients.Caller.SendAsync("Error", "You are not in this room.");
@@ -290,11 +306,11 @@ namespace Ora.GameManaging.Server
 
             await Clients.Group(key).SendAsync("ReceiveMessage", player.Name, message);
 
-            var dbRoom = await _roomRepo.GetByRoomIdAsync(appId, roomId);
+            var dbRoom = await roomRepo.GetByRoomIdAsync(appId, roomId);
             if (dbRoom != null)
-                await _eventRepo.AddAsync(dbRoom.Id, "ChatMessage", player.Name, message);
+                await eventRepo.AddAsync(dbRoom.Id, "ChatMessage", player.Name, message);
 
-            await _playerRepo.UpdateLastSeenAsync(appId, roomId, userId, DateTime.UtcNow);
+            await playerRepo.UpdateLastSeenAsync(appId, roomId, userId, DateTime.UtcNow);
         }
 
         // 1. Start group turn (simultaneous)
@@ -304,7 +320,7 @@ namespace Ora.GameManaging.Server
             // Parse playerIds: (this logic should be as per your game logic)
             var playerIds = GetTargetPlayerConnectionIds(appId, roomId, rolesOrConnectionIds);
             int duration = 30; // Or dynamic as per room settings
-            _turnManager.StartGroupTurnSimultaneous(key, playerIds, duration);
+            turnManager.StartGroupTurnSimultaneous(key, playerIds, duration);
             await Clients.Group(key).SendAsync("TurnChanged", "Group turn started (simultaneous)");
         }
 
@@ -312,7 +328,7 @@ namespace Ora.GameManaging.Server
         public async Task PauseGroupTimer(string appId, string roomId)
         {
             var key = $"{appId}:{roomId}";
-            _turnManager.PauseGroupTimer(key);
+            turnManager.PauseGroupTimer(key);
             await Clients.Group(key).SendAsync("TimerPaused");
         }
 
@@ -320,7 +336,7 @@ namespace Ora.GameManaging.Server
         public async Task ResumeGroupTimer(string appId, string roomId)
         {
             var key = $"{appId}:{roomId}";
-            _turnManager.ResumeGroupTimer(key);
+            turnManager.ResumeGroupTimer(key);
             await Clients.Group(key).SendAsync("TimerResumed");
         }
 
@@ -330,7 +346,7 @@ namespace Ora.GameManaging.Server
             var key = $"{appId}:{roomId}";
             var playerIds = GetTargetPlayerConnectionIds(appId, roomId, rolesOrConnectionIds);
             int duration = 30; // Or dynamic as per room settings
-            _turnManager.StartGroupTurnRotating(key, playerIds, duration);
+            turnManager.StartGroupTurnRotating(key, playerIds, duration);
             await Clients.Group(key).SendAsync("TurnChanged", "Group turn started (rotating)");
         }
 
@@ -352,18 +368,18 @@ namespace Ora.GameManaging.Server
             player.Role = newRole;
 
             // Update role in the database
-            await _playerRepo.UpdateRoleAsync(appId, roomId, userId, newRole);
+            await playerRepo.UpdateRoleAsync(appId, roomId, userId, newRole);
 
             // Log the event
-            var dbRoom = await _roomRepo.GetByRoomIdAsync(appId, roomId);
+            var dbRoom = await roomRepo.GetByRoomIdAsync(appId, roomId);
             if (dbRoom != null)
-                await _eventRepo.AddAsync(dbRoom.Id, "RoleChanged", player.Name, newRole);
+                await eventRepo.AddAsync(dbRoom.Id, "RoleChanged", player.Name, newRole);
 
             // Notify all room members about the role change
             await Clients.Group(key).SendAsync("PlayerRoleChanged", player.Name, newRole);
 
             // Save room snapshot
-            await _roomRepo.SaveSnapshotAsync(appId, roomId, SerializeRoom(room));
+            await roomRepo.SaveSnapshotAsync(appId, roomId, SerializeRoom(room));
         }
 
         // Helper method to extract connection IDs from input (customize as needed)
@@ -371,7 +387,7 @@ namespace Ora.GameManaging.Server
         {
             var key = $"{appId}:{roomId}";
             if (!Rooms.TryGetValue(key, out var room))
-                return new List<string>();
+                return [];
 
             if (string.IsNullOrWhiteSpace(rolesOrConnectionIds))
                 return room.Players.Values.Select(p => p.ConnectionId).ToList();
@@ -405,15 +421,29 @@ namespace Ora.GameManaging.Server
                     room.Players.TryRemove(player.UserId, out _);
                     var key = $"{room.AppId}:{room.RoomId}";
                     await Groups.RemoveFromGroupAsync(connectionId, key);
-                    var dbRoom = await _roomRepo.GetByRoomIdAsync(room.AppId, room.RoomId);
+                    var dbRoom = await roomRepo.GetByRoomIdAsync(room.AppId, room.RoomId);
                     if (dbRoom != null)
                     {
-                        await _playerRepo.RemoveFromRoomAsync(room.AppId, room.RoomId, player.UserId);
-                        await _eventRepo.AddAsync(dbRoom.Id, "PlayerLeft", player.Name, player.Role);
-                        await _roomRepo.SaveSnapshotAsync(room.AppId, room.RoomId, SerializeRoom(room));
+                        await RemovePlayerRoleIfGameNotStarted(room.AppId, room.RoomId, player.Name, room, dbRoom.IsGameStarted);
+                        await eventRepo.AddAsync(dbRoom.Id, "PlayerLeft", player.Name, player.Role);
+                        await roomRepo.SaveSnapshotAsync(room.AppId, room.RoomId, SerializeRoom(room));
                     }
                 }
             }
+        }
+        // Add this new private method to GameHub
+        private async Task RemovePlayerRoleIfGameNotStarted(string appId, string roomId, string userId, GameRoom room, bool IsGameStarted)
+        {
+            if (!IsGameStarted)
+            {
+                await adapterFactory.Do<string, RemoveRoleModel>(new RemoveRoleModel
+                {
+                    ApplicationInstanceId = appId,
+                    RoomId = roomId,
+                    UserId = userId
+                });
+            }
+            await playerRepo.RemoveFromRoomAsync(room.AppId, room.RoomId, userId);
         }
     }
 }

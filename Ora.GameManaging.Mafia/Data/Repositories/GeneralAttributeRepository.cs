@@ -12,6 +12,10 @@ namespace Ora.GameManaging.Mafia.Data.Repositories
             await context.GeneralAttributes
                 .Where(a => a.ApplicationInstanceId == applicationInstanceId && a.EntityName == entityName && a.EntityId == entityId)
                 .ToListAsync();
+        public async Task<GeneralAttributeEntity?> GetByEntityAsync(string applicationInstanceId, string entityName, string entityId, string key) =>
+            await context.GeneralAttributes
+                .Where(a => a.ApplicationInstanceId == applicationInstanceId && a.EntityName == entityName && a.EntityId == entityId && a.Key == key)
+                .FirstOrDefaultAsync();
 
         public async Task<IEnumerable<GeneralAttributeEntity>> GetEntitiesAsync(string applicationInstanceId, string entityName) =>
             await context.GeneralAttributes

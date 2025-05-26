@@ -79,7 +79,6 @@ namespace Ora.GameManaging.Server.Infrastructure
             {
                 for (int i = state.RemainingSeconds; i >= 0; i--)
                 {
-                    var result= await grpcHelloService.SayHelloAsync("Mafia", "Test");
                     state.RemainingSeconds = i;
 
                     while (state.IsPaused)

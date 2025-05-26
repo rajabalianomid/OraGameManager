@@ -9,62 +9,69 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
 {
     public class SettingService(GeneralAttributeRepository generalAttributeRepository)
     {
-        public async Task<GameNextRoleReply> GetNextAvailableRoleAsync(string applicationInstanceId, string roomId, CancellationToken cancellationToken)
+        public async Task<string> GetNextAvailableRoleAsync(string applicationInstanceId, string roomId, string userId, CancellationToken cancellationToken)
         {
             // 1. Fetch all attributes for the room
             var attributes = (await generalAttributeRepository.GetByEntityAsync(applicationInstanceId, EntityKeys.GameRoom, roomId))
                 .ToList();
 
-            // 2. Get the available roles for this room (comma-separated, e.g. "Citizen,Citizen,Doctor")
+            // 2. Check if this user already has an assigned role
+            var userRoleKey = $"AssignedRole:{userId}";
+            var userRoleAttribute = attributes.FirstOrDefault(a => a.Key == userRoleKey);
+            if (userRoleAttribute != null && !string.IsNullOrWhiteSpace(userRoleAttribute.Value))
+            {
+                // Already assigned, return the same role
+                return userRoleAttribute.Value;
+            }
+
+            // 3. Get the available roles for this room (comma-separated, e.g. "Citizen,Citizen,Doctor")
             var availableRolesAttribute = attributes.FirstOrDefault(a => a.Key == "AvailableRoles");
             if (availableRolesAttribute == null || string.IsNullOrWhiteSpace(availableRolesAttribute.Value))
-                return new GameNextRoleReply();
+                return string.Empty;
 
             var availableRoles = availableRolesAttribute.Value
                 .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 .ToList();
 
-            // 3. Get the assigned roles for this room (comma-separated)
-            var assignedRolesAttribute = attributes.FirstOrDefault(a => a.Key == "AssignedRoles");
-            var assignedRoles = new List<string>();
-            if (assignedRolesAttribute != null && !string.IsNullOrWhiteSpace(assignedRolesAttribute.Value))
-            {
-                assignedRoles = [.. assignedRolesAttribute.Value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)];
-            }
+            // 4. Get all assigned roles for this room (from all users)
+            var assignedRoles = attributes
+                .Where(a => a.Key.StartsWith("AssignedRole:") && !string.IsNullOrWhiteSpace(a.Value))
+                .Select(a => a.Value)
+                .ToList();
 
-            // 4. Find a role that is still available (count in assigned < count in available)
+            // 5. Find a role that is still available (count in assigned < count in available)
             foreach (var role in availableRoles.Distinct(StringComparer.OrdinalIgnoreCase))
             {
                 var availableCount = availableRoles.Count(r => string.Equals(r, role, StringComparison.OrdinalIgnoreCase));
                 var assignedCount = assignedRoles.Count(r => string.Equals(r, role, StringComparison.OrdinalIgnoreCase));
                 if (assignedCount < availableCount)
                 {
-                    // Assign this role
-                    assignedRoles.Add(role);
-                    var updatedAssignedRoles = string.Join(",", assignedRoles);
-
-                    if (assignedRolesAttribute != null)
+                    // Assign this role to this user in DB
+                    var newUserRole = new GeneralAttributeEntity
                     {
-                        assignedRolesAttribute.Value = updatedAssignedRoles;
-                        await generalAttributeRepository.UpdateAsync(assignedRolesAttribute);
-                    }
-                    else
-                    {
-                        await generalAttributeRepository.AddAsync(new GeneralAttributeEntity
-                        {
-                            ApplicationInstanceId = applicationInstanceId,
-                            EntityName = EntityKeys.GameRoom,
-                            EntityId = roomId,
-                            Key = "AssignedRoles",
-                            Value = updatedAssignedRoles
-                        });
-                    }
-                    return new GameNextRoleReply { Role = role };
+                        ApplicationInstanceId = applicationInstanceId,
+                        EntityName = EntityKeys.GameRoom,
+                        EntityId = roomId,
+                        Key = userRoleKey,
+                        Value = role
+                    };
+                    await generalAttributeRepository.AddAsync(newUserRole);
+                    return role;
                 }
             }
 
             // No available roles left
-            return new GameNextRoleReply();
+            return string.Empty;
+        }
+
+        public async Task<string> RemoveAssignedRoleAsync(string applicationInstanceId, string roomId, string userId)
+        {
+            var userRoleKey = $"AssignedRole:{userId}";
+            var attr = await generalAttributeRepository.GetByEntityAsync(applicationInstanceId, EntityKeys.GameRoom, roomId, userRoleKey);
+            if (attr != null)
+                await generalAttributeRepository.DeleteAsync(attr.Id);
+
+            return userRoleKey;
         }
     }
 }

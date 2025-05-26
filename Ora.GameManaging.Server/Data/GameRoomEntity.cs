@@ -5,6 +5,7 @@
         public int Id { get; set; }
         public string AppId { get; set; } = ""; // FK
         public string RoomId { get; set; } = "";
+        public bool IsGameStarted { get; set; }
         public int TurnDurationSeconds { get; set; }
         public string? CurrentTurnPlayers { get; set; } // For group turns, store as comma-separated or JSON
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

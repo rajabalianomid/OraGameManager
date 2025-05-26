@@ -100,6 +100,7 @@ Host.CreateDefaultBuilder(args)
             services.AddScoped<IGameRoomServices, GameRoomServices>();
             //GRPC
             services.AddSingleton<GrpcHelloService>();
+            services.AddSingleton<GrpcAdapter>();
 
 
             #region GRPC Clients

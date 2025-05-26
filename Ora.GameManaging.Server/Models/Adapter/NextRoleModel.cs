@@ -1,8 +1,12 @@
 ﻿namespace Ora.GameManaging.Server.Models.Adapter
 {
-    public class NextRoleModel
+    public class NextRoleModel : AdapterModel
     {
+        public override string ActionName => "GetNextAvailableRoleAsync";
+        public override string TypeName => "SettingService";
+
         public required string ApplicationInstanceId { get; set; }
         public required string RoomId { get; set; }
+        public required string UserId { get; set; }
     }
 }
