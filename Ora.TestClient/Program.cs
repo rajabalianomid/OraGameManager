@@ -17,8 +17,24 @@ class Program
     static string playerName = "";
     static string userId = "";
 
-    static async Task Main()
+    static async Task Main(string[] args)
     {
+        args = ["--autojoin"]; // For testing purposes, remove this line in production
+        if (args.Contains("--autojoin"))
+        {
+            Console.Write("AppId: ");
+            var appId = Console.ReadLine() ?? "defaultApp";
+            Console.Write("RoomId: ");
+            var roomId = Console.ReadLine() ?? "TestRoom";
+            Console.Write("Client count: ");
+            var countStr = Console.ReadLine();
+            int clientCount = int.TryParse(countStr, out var c) ? c : 5;
+
+            var program = new Program();
+            await program.TestAutoJoinClientsAsync(clientCount, appId, roomId);
+            return;
+        }
+
         Thread.Sleep(4000);
 
         Console.Write("Enter your AppId (client isolation): ");
@@ -297,5 +313,41 @@ class Program
         {
             Console.WriteLine($"{name} changed role to {newRole}");
         });
+    }
+    async Task TestAutoJoinClientsAsync(int clientCount, string appId, string roomId)
+    {
+        Thread.Sleep(4000);
+        var clients = new List<HubConnection>();
+
+        for (int i = 0; i < clientCount; i++)
+        {
+            Thread.Sleep(4000);
+            var playerName = $"TestUser_{i + 1}";
+            var connection = new HubConnectionBuilder()
+                .WithUrl("https://localhost:5001/gamehub")
+                .WithAutomaticReconnect()
+                .Build();
+
+            connection.On<int>("TimerTick", seconds =>
+            {
+                Console.WriteLine($"[{playerName}] [TIMER] {seconds} seconds left");
+            });
+
+            await connection.StartAsync();
+            clients.Add(connection);
+
+            await connection.InvokeAsync("JoinRoomAuto", appId, roomId, playerName);
+
+            Console.WriteLine($"[{playerName}] joined room {roomId}");
+        }
+
+        Console.WriteLine("All test clients joined. Press any key to disconnect...");
+        Console.ReadKey();
+
+        foreach (var client in clients)
+        {
+            await client.StopAsync();
+            await client.DisposeAsync();
+        }
     }
 }

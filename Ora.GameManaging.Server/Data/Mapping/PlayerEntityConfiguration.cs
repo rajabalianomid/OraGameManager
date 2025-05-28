@@ -12,6 +12,7 @@ namespace Ora.GameManaging.Server.Data.Mapping
             builder.Property(p => p.ConnectionId).HasMaxLength(100);
             builder.Property(p => p.Name).IsRequired().HasMaxLength(50);
             builder.Property(p => p.Role).HasMaxLength(30);
+            builder.HasIndex(p => new { p.UserId, p.GameRoomEntityId }).IsUnique();
         }
     }
 }

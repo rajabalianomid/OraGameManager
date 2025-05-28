@@ -11,6 +11,13 @@ namespace Ora.GameManaging.Server.Data.Repositories
                 .FirstOrDefaultAsync(r => r.AppId == appId && r.RoomId == roomId)
                 ?? throw new Exception("Room not found");
 
+            var existingPlayer = room.Players.FirstOrDefault(p => p.UserId == userId);
+            if (existingPlayer != null)
+            {
+                db.Players.Remove(existingPlayer);
+                await db.SaveChangesAsync();
+            }
+
             var player = new PlayerEntity
             {
                 ConnectionId = connectionId,

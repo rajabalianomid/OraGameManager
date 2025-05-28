@@ -1,4 +1,6 @@
 ﻿using Microsoft.AspNetCore.SignalR;
+using Ora.GameManaging.Server.Models;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 namespace Ora.GameManaging.Server.Infrastructure
 {
@@ -13,6 +15,13 @@ namespace Ora.GameManaging.Server.Infrastructure
                 .ToList();
             return Task.WhenAll(tasks);
         }
+        public Task SendTurnChangedToPlayers(List<string> playerConnectionIds, GameRoom gameRoom, string message = "It's your turn!")
+        {
+            var tasks = playerConnectionIds
+                .Select(id => hubContext.Clients.Client(id).SendAsync($"TurnChanged:{gameRoom.GetPlayerInfo(id)}", message))
+                .ToList();
+            return Task.WhenAll(tasks);
+        }
 
         // Send timer ticks only to selected players.
         public Task SendTimerTickToPlayers(List<string> playerConnectionIds, int seconds)
@@ -22,6 +31,13 @@ namespace Ora.GameManaging.Server.Infrastructure
                 .ToList();
             return Task.WhenAll(tasks);
         }
+        //public Task SendTimerTickToPlayers(List<string> playerConnectionIds, GameRoom gameRoom, int seconds)
+        //{
+        //    var tasks = playerConnectionIds
+        //        .Select(id => hubContext.Clients.Client(id).SendAsync($"TimerTick:{gameRoom.GetPlayerInfo(id)}", seconds))
+        //        .ToList();
+        //    return Task.WhenAll(tasks);
+        //}
 
         // Send turn timeout only to selected players.
         public Task SendTurnTimeoutToPlayers(List<string> playerConnectionIds, string message = "Timeout!")
@@ -57,5 +73,6 @@ namespace Ora.GameManaging.Server.Infrastructure
         // Notify the entire group that group turn is finished.
         public Task SendGroupTurnEnded(string roomId)
             => hubContext.Clients.Group(roomId).SendAsync("GroupTurnEnded", "Group turn has finished!");
+
     }
 }

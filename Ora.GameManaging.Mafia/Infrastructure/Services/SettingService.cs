@@ -2,6 +2,7 @@
 using Grpc.Net.ClientFactory;
 using Ora.GameManaging.Mafia.Data;
 using Ora.GameManaging.Mafia.Data.Repositories;
+using Ora.GameManaging.Mafia.Model;
 using Ora.GameManaging.Mafia.Model.Mapping;
 using Ora.GameManaging.Mafia.Protos;
 
@@ -72,6 +73,19 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
                 await generalAttributeRepository.DeleteAsync(attr.Id);
 
             return userRoleKey;
+        }
+
+        public async Task<int> GetMaximumPlayerFromRoomAsync(string applicationInstanceId, string roomId)
+        {
+            // Fetch the room attributes
+            var attributes = await generalAttributeRepository.GetByEntityAsync(applicationInstanceId, EntityKeys.GameRoom, roomId);
+            var maxPlayerAttr = attributes.FirstOrDefault(a => a.Key == SettingKeys.MaxPlayer);
+
+            if (maxPlayerAttr != null && int.TryParse(maxPlayerAttr.Value, out int maxPlayer))
+            {
+                return maxPlayer;
+            }
+            return 0;
         }
     }
 }
