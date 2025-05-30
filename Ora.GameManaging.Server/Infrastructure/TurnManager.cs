@@ -1,5 +1,6 @@
 ﻿using Grpc.Net.ClientFactory;
 using Microsoft.AspNetCore.SignalR;
+using Ora.GameManaging.Server.Data.Migrations;
 using Ora.GameManaging.Server.Infrastructure.Proxy;
 using System.Collections.Concurrent;
 using System.Security.AccessControl;
@@ -8,6 +9,8 @@ namespace Ora.GameManaging.Server.Infrastructure
 {
     public class TurnManager(IHubContext<GameHub> hubContext, GrpcHelloService grpcHelloService)
     {
+        // Callback for notifying when a turn is finished
+        private Action<string>? _turnFinishedCallback;
 
         // Internal state for each room's timer
         private class GroupTimerState
@@ -21,7 +24,7 @@ namespace Ora.GameManaging.Server.Infrastructure
         private readonly ConcurrentDictionary<string, GroupTimerState> _groupTimers = new();
 
         // Simultaneous group timer for all selected players
-        public void StartGroupTurnSimultaneous(string roomId, List<string> playerIds, int durationSeconds)
+        public void StartGroupTurnSimultaneous(string roomId, List<string> userIds, int durationSeconds)
         {
             Cancel(roomId);
 
@@ -30,7 +33,7 @@ namespace Ora.GameManaging.Server.Infrastructure
                 TokenSource = new CancellationTokenSource(),
                 IsPaused = false,
                 RemainingSeconds = durationSeconds,
-                TargetPlayers = playerIds.ToList()
+                TargetPlayers = userIds.ToList()
             };
             _groupTimers[roomId] = state;
 
@@ -38,7 +41,7 @@ namespace Ora.GameManaging.Server.Infrastructure
         }
 
         // Rotating group timer, each player gets timer one after another
-        public void StartGroupTurnRotating(string roomId, List<string> playerIds, int durationSeconds)
+        public void StartGroupTurnRotating(string roomId, List<string> userIds, int durationSeconds)
         {
             Cancel(roomId);
 
@@ -47,7 +50,7 @@ namespace Ora.GameManaging.Server.Infrastructure
                 TokenSource = new CancellationTokenSource(),
                 IsPaused = false,
                 RemainingSeconds = durationSeconds,
-                TargetPlayers = playerIds.ToList()
+                TargetPlayers = userIds.ToList()
             };
             _groupTimers[roomId] = state;
 
@@ -86,13 +89,23 @@ namespace Ora.GameManaging.Server.Infrastructure
                         await Task.Delay(200, state.TokenSource.Token);
                     }
 
+                    List<string> currentConnectionIds = [];
+                    if (GameManager.Rooms.TryGetValue(roomId, out var room))
+                    {
+                        foreach (var userId in state.TargetPlayers)
+                        {
+                            if (room.Players.TryGetValue(userId, out var player))
+                                currentConnectionIds.Add(player.ConnectionId);
+                        }
+                    }
+
                     // Broadcast timer tick ONLY to target players (not whole group)
-                    await hubContext.Clients.Clients(state.TargetPlayers).SendAsync("TimerTick", i);
+                    await hubContext.Clients.Clients(currentConnectionIds).SendAsync("TimerTick", i);
 
                     if (i == 0)
                     {
                         // Timeout ONLY to target players
-                        await hubContext.Clients.Clients(state.TargetPlayers).SendAsync("TurnTimeout", state.TargetPlayers);
+                        await hubContext.Clients.Clients(currentConnectionIds).SendAsync("TurnTimeout", state.TargetPlayers);
                         Cancel(roomId); // Clean up after finish
                     }
                     else
@@ -116,7 +129,7 @@ namespace Ora.GameManaging.Server.Infrastructure
         {
             try
             {
-                foreach (var playerId in state.TargetPlayers)
+                foreach (var userId in state.TargetPlayers)
                 {
                     int seconds = state.RemainingSeconds;
                     for (int i = seconds; i >= 0; i--)
@@ -128,12 +141,23 @@ namespace Ora.GameManaging.Server.Infrastructure
                             await Task.Delay(200, state.TokenSource.Token);
                         }
 
-                        // Send timer tick only to the current player
-                        await hubContext.Clients.Client(playerId).SendAsync("TimerTick", i);
+                        string? currentConnectionId = null;
+                        if (GameManager.Rooms.TryGetValue(roomId, out var room) &&
+                            room.Players.TryGetValue(userId, out var player))
+                        {
+                            currentConnectionId = player.ConnectionId;
+                        }
+
+                        if (!string.IsNullOrEmpty(currentConnectionId))
+                        { 
+                            // Send timer tick only to the current player
+                            await hubContext.Clients.Client(currentConnectionId).SendAsync("TimerTick", i);
+                        }
 
                         if (i == 0)
                         {
-                            await hubContext.Clients.Client(playerId).SendAsync("TurnTimeout");
+                            if (!string.IsNullOrEmpty(currentConnectionId))
+                                await hubContext.Clients.Client(currentConnectionId).SendAsync("TurnTimeout");
                             // Next player automatically
                         }
                         else
@@ -144,6 +168,9 @@ namespace Ora.GameManaging.Server.Infrastructure
                     // Reset for the next player (if you want fresh timer for each player)
                     state.RemainingSeconds = seconds;
                 }
+                // Notify GameManager that the rotating turn is finished
+                _turnFinishedCallback?.Invoke(roomId);
+
                 Cancel(roomId); // Clean up after all players finished
             }
             catch (OperationCanceledException)
@@ -154,6 +181,11 @@ namespace Ora.GameManaging.Server.Infrastructure
             {
                 Console.WriteLine($"[TurnManager] Error in rotating timer: {ex.Message}");
             }
+        }
+
+        public void RegisterTurnFinishedCallback(Action<string> callback)
+        {
+            _turnFinishedCallback = callback;
         }
     }
 }

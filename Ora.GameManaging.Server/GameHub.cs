@@ -318,9 +318,9 @@ namespace Ora.GameManaging.Server
         {
             var key = $"{appId}:{roomId}";
             // Parse playerIds: (this logic should be as per your game logic)
-            var playerIds = GetTargetPlayerConnectionIds(appId, roomId, rolesOrConnectionIds);
+            var userIds = GetTargetPlayerConnectionIds(appId, roomId, rolesOrConnectionIds);
             int duration = 30; // Or dynamic as per room settings
-            turnManager.StartGroupTurnSimultaneous(key, playerIds, duration);
+            turnManager.StartGroupTurnSimultaneous(key, userIds, duration);
             await Clients.Group(key).SendAsync("TurnChanged", "Group turn started (simultaneous)");
         }
 
@@ -344,9 +344,9 @@ namespace Ora.GameManaging.Server
         public async Task StartGroupTurnRotating(string appId, string roomId, string? rolesOrConnectionIds)
         {
             var key = $"{appId}:{roomId}";
-            var playerIds = GetTargetPlayerConnectionIds(appId, roomId, rolesOrConnectionIds);
+            var userIds = GetTargetPlayerConnectionIds(appId, roomId, rolesOrConnectionIds);
             int duration = 30; // Or dynamic as per room settings
-            turnManager.StartGroupTurnRotating(key, playerIds, duration);
+            turnManager.StartGroupTurnRotating(key, userIds, duration);
             await Clients.Group(key).SendAsync("TurnChanged", "Group turn started (rotating)");
         }
 
@@ -383,20 +383,20 @@ namespace Ora.GameManaging.Server
         }
 
         // Helper method to extract connection IDs from input (customize as needed)
-        private List<string> GetTargetPlayerConnectionIds(string appId, string roomId, string? rolesOrConnectionIds)
+        private List<string> GetTargetPlayerConnectionIds(string appId, string roomId, string? rolesOrUserIds)
         {
             var key = $"{appId}:{roomId}";
             if (!Rooms.TryGetValue(key, out var room))
                 return [];
 
-            if (string.IsNullOrWhiteSpace(rolesOrConnectionIds))
+            if (string.IsNullOrWhiteSpace(rolesOrUserIds))
                 return room.Players.Values.Select(p => p.ConnectionId).ToList();
 
-            var tokens = rolesOrConnectionIds.Split(',').Select(x => x.Trim()).Where(x => !string.IsNullOrEmpty(x)).ToList();
+            var tokens = rolesOrUserIds.Split(',').Select(x => x.Trim()).Where(x => !string.IsNullOrEmpty(x)).ToList();
             // Match either by role or direct connectionId
             return room.Players.Values
-                .Where(p => tokens.Contains(p.Role, StringComparer.OrdinalIgnoreCase) || tokens.Contains(p.ConnectionId))
-                .Select(p => p.ConnectionId)
+                .Where(p => tokens.Contains(p.Role, StringComparer.OrdinalIgnoreCase) || tokens.Contains(p.UserId))
+                .Select(p => p.UserId)
                 .ToList();
         }
 

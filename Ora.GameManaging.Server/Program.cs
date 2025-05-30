@@ -91,7 +91,7 @@ Host.CreateDefaultBuilder(args)
             services.AddHostedService<StalePlayerCleanupService>();
             services.AddSingleton<NotificationManager>();
             services.AddSingleton<TurnManager>();
-            services.AddScoped<GameManager>();
+            services.AddSingleton<GameManager>();
             //Repositories
             services.AddScoped<GameRoomRepository>();
             services.AddScoped<PlayerRepository>();
