@@ -1,13 +1,16 @@
-﻿using Grpc.Net.ClientFactory;
+﻿using Google.Protobuf.WellKnownTypes;
+using Grpc.Net.ClientFactory;
 using Microsoft.AspNetCore.SignalR;
 using Ora.GameManaging.Server.Data.Migrations;
 using Ora.GameManaging.Server.Infrastructure.Proxy;
+using Ora.GameManaging.Server.Models;
+using Ora.GameManaging.Server.Models.Adapter;
 using System.Collections.Concurrent;
 using System.Security.AccessControl;
 
 namespace Ora.GameManaging.Server.Infrastructure
 {
-    public class TurnManager(IHubContext<GameHub> hubContext, GrpcHelloService grpcHelloService)
+    public class TurnManager(IHubContext<GameHub> hubContext, GrpcAdapter grpcAdapter, GrpcHelloService grpcHelloService)
     {
         // Callback for notifying when a turn is finished
         private Action<string>? _turnFinishedCallback;
@@ -146,10 +149,16 @@ namespace Ora.GameManaging.Server.Infrastructure
                             room.Players.TryGetValue(userId, out var player))
                         {
                             currentConnectionId = player.ConnectionId;
+
                         }
 
                         if (!string.IsNullOrEmpty(currentConnectionId))
-                        { 
+                        {
+                            // Ensure `room` is not null before using it
+                            if (room != null)
+                            {
+                                var latestinfo = await grpcAdapter.Do<LatestInformationModel, LastInformationModel>(new LastInformationModel { RequestModel = room.Serialize() });
+                            }
                             // Send timer tick only to the current player
                             await hubContext.Clients.Client(currentConnectionId).SendAsync("TimerTick", i);
                         }

@@ -27,6 +27,7 @@ builder.Services.AddGrpc();
 builder.Services.AddScoped<GeneralAttributeRepository>();
 //Add Services
 builder.Services.AddScoped<SettingService>();
+builder.Services.AddScoped<MafiaEngine>();
 //Grpc
 builder.Services.AddScoped<GameRoomProxy>();
 builder.Services.AddScoped<AdapterHandler>();
