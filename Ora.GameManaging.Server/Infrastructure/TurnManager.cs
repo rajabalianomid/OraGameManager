@@ -10,7 +10,7 @@ using System.Security.AccessControl;
 
 namespace Ora.GameManaging.Server.Infrastructure
 {
-    public class TurnManager(IHubContext<GameHub> hubContext, GrpcAdapter grpcAdapter, GrpcHelloService grpcHelloService)
+    public class TurnManager(IHubContext<GameHub> hubContext, GrpcAdapter grpcAdapter)
     {
         // Callback for notifying when a turn is finished
         private Action<string>? _turnFinishedCallback;
@@ -157,6 +157,7 @@ namespace Ora.GameManaging.Server.Infrastructure
                             // Ensure `room` is not null before using it
                             if (room != null)
                             {
+                                room.CurrentTurnPlayerId = userId;
                                 var latestinfo = await grpcAdapter.Do<LatestInformationModel, LastInformationModel>(new LastInformationModel { RequestModel = room.Serialize() });
                             }
                             // Send timer tick only to the current player

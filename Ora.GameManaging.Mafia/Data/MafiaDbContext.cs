@@ -9,6 +9,8 @@ namespace Ora.GameManaging.Mafia.Data
     public class MafiaDbContext(DbContextOptions<MafiaDbContext> options) : IdentityDbContext<ApplicationUser>(options)
     {
         public DbSet<GeneralAttributeEntity> GeneralAttributes { get; set; }
+        public DbSet<RoleStatusEntity> RoleStatuses { get; set; }
+        public DbSet<GameActionHistoryEntity> GameActionHistories { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -21,9 +23,13 @@ namespace Ora.GameManaging.Mafia.Data
             builder.Entity<IdentityUserLogin<string>>().ToTable("UserLogins");
             builder.Entity<IdentityRoleClaim<string>>().ToTable("RoleClaims");
             builder.Entity<IdentityUserToken<string>>().ToTable("UserTokens");
+            builder.Entity<RoleStatusEntity>().ToTable("RoleStatuses");
 
             builder.ApplyConfiguration(new ApplicationEntityConfiguration());
             builder.ApplyConfiguration(new GeneralAttributeEntityConfiguration());
+            builder.ApplyConfiguration(new RoleStatusEntityConfiguration());
+            builder.ApplyConfiguration(new GameActionHistoryEntityConfiguration());
+            builder.ApplyConfiguration(new AbilityEntityConfiguration());
         }
     }
 }

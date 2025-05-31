@@ -22,7 +22,8 @@ namespace Ora.GameManaging.Server.Models
             {
                 AppId,
                 RoomId,
-                Players = Players.Values.Select(p => new { p.ConnectionId, p.UserId, p.Name, p.Role, p.Status }),
+                CurrentTurnPlayerId,
+                Players = Players.Values.Select(p => new { p.ConnectionId, p.UserId, p.Name, p.Role, p.Status, RoomId }),
                 TurnDurationSeconds
             }.ToJsonSerialize();
         }

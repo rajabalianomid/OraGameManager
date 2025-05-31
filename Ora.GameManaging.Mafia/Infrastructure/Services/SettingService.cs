@@ -1,20 +1,19 @@
-﻿using Grpc.Core;
-using Grpc.Net.ClientFactory;
+﻿using Microsoft.EntityFrameworkCore;
 using Ora.GameManaging.Mafia.Data;
-using Ora.GameManaging.Mafia.Data.Repositories;
+using Ora.GameManaging.Mafia.Data.Migrations;
 using Ora.GameManaging.Mafia.Model;
 using Ora.GameManaging.Mafia.Model.Mapping;
-using Ora.GameManaging.Mafia.Protos;
 
 namespace Ora.GameManaging.Mafia.Infrastructure.Services
 {
-    public class SettingService(GeneralAttributeRepository generalAttributeRepository)
+    public class SettingService(MafiaDbContext dbContext)
     {
         public async Task<string> GetNextAvailableRoleAsync(string applicationInstanceId, string roomId, string userId, CancellationToken cancellationToken)
         {
             // 1. Fetch all attributes for the room
-            var attributes = (await generalAttributeRepository.GetByEntityAsync(applicationInstanceId, EntityKeys.GameRoom, roomId))
-                .ToList();
+            var attributes = await dbContext.GeneralAttributes
+                .Where(a => a.ApplicationInstanceId == applicationInstanceId && a.EntityName == EntityKeys.GameRoom && a.EntityId == roomId)
+                .ToListAsync(cancellationToken);
 
             // 2. Check if this user already has an assigned role
             var userRoleKey = $"AssignedRole:{userId}";
@@ -41,6 +40,10 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
                 .ToList();
 
             // 5. Find a role that is still available (count in assigned < count in available)
+
+            var roomRoleSettings = (await dbContext.GeneralAttributes
+                        .Where(a => a.EntityName == EntityKeys.RoomRole && a.EntityId == roomId)
+                        .ToListAsync());
             foreach (var role in availableRoles.Distinct(StringComparer.OrdinalIgnoreCase))
             {
                 var availableCount = availableRoles.Count(r => string.Equals(r, role, StringComparison.OrdinalIgnoreCase));
@@ -56,7 +59,36 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
                         Key = userRoleKey,
                         Value = role
                     };
-                    await generalAttributeRepository.AddAsync(newUserRole);
+                    dbContext.GeneralAttributes.Add(newUserRole);
+                    await dbContext.SaveChangesAsync(cancellationToken);
+
+                    // Populate RoleStatusEntity from GeneralAttributeEntity
+                    var prefix = $"{role}_";
+                    var roleAttributes = roomRoleSettings.Where(w => w.Key.StartsWith(prefix))
+                        .Select(a => new GeneralAttributeEntity
+                        {
+                            ApplicationInstanceId = a.ApplicationInstanceId,
+                            EntityName = a.EntityName,
+                            EntityId = a.EntityId,
+                            Key = a.Key[(role.Length + 1)..], // Remove role prefix and underscore
+                            Value = a.Value
+                        }).ToList();
+
+                    var roleStatus = new RoleStatusEntity
+                    {
+                        ApplicationInstanceId = applicationInstanceId,
+                        RoomId = roomId,
+                        UserId = userId,
+                        RoleName = role,
+                        Abilities = string.Empty, // Initialize with empty abilities
+                        LastUpdated = DateTime.UtcNow
+                    };
+
+                    AttributeReflectionHelper.ApplyAttributesToModel(roleStatus, roleAttributes);
+
+                    dbContext.RoleStatuses.Add(roleStatus);
+                    await dbContext.SaveChangesAsync(cancellationToken);
+
                     return role;
                 }
             }
@@ -68,9 +100,17 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
         public async Task<string> RemoveAssignedRoleAsync(string applicationInstanceId, string roomId, string userId)
         {
             var userRoleKey = $"AssignedRole:{userId}";
-            var attr = await generalAttributeRepository.GetByEntityAsync(applicationInstanceId, EntityKeys.GameRoom, roomId, userRoleKey);
+            var attr = await dbContext.GeneralAttributes
+                .FirstOrDefaultAsync(a =>
+                    a.ApplicationInstanceId == applicationInstanceId &&
+                    a.EntityName == EntityKeys.GameRoom &&
+                    a.EntityId == roomId &&
+                    a.Key == userRoleKey);
             if (attr != null)
-                await generalAttributeRepository.DeleteAsync(attr.Id);
+            {
+                dbContext.GeneralAttributes.Remove(attr);
+                await dbContext.SaveChangesAsync();
+            }
 
             return userRoleKey;
         }
@@ -78,7 +118,10 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
         public async Task<int> GetMaximumPlayerFromRoomAsync(string applicationInstanceId, string roomId)
         {
             // Fetch the room attributes
-            var attributes = await generalAttributeRepository.GetByEntityAsync(applicationInstanceId, EntityKeys.GameRoom, roomId);
+            var attributes = await dbContext.GeneralAttributes
+               .Where(a => a.ApplicationInstanceId == applicationInstanceId && a.EntityName == EntityKeys.GameRoom && a.EntityId == roomId)
+               .ToListAsync();
+
             var maxPlayerAttr = attributes.FirstOrDefault(a => a.Key == SettingKeys.MaxPlayer);
 
             if (maxPlayerAttr != null && int.TryParse(maxPlayerAttr.Value, out int maxPlayer))

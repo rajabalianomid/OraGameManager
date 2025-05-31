@@ -10,6 +10,7 @@ namespace Ora.GameManaging.Server.Data.Mapping
         {
             builder.HasKey(r => r.Id);
             builder.Property(r => r.RoomId).IsRequired().HasMaxLength(50);
+            builder.Property(r => r.Phase).IsRequired().HasMaxLength(20);
             builder.HasMany(r => r.Players)
                    .WithOne(p => p.GameRoom)
                    .HasForeignKey(p => p.GameRoomEntityId)

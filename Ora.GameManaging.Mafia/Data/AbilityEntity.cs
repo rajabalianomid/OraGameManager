@@ -1,0 +1,14 @@
+﻿namespace Ora.GameManaging.Mafia.Data
+{
+    public class AbilityEntity
+    {
+        public int Id { get; set; }
+        public required string Name { get; set; } // Ability name (e.g., "Heal", "Kill")
+        public string? Description { get; set; }
+        public string? Expression { get; set; } // For dynamic logic, if needed
+        public bool IsNightAbility { get; set; }
+        public bool IsDayAbility { get; set; }
+
+        public required ICollection<GameActionHistoryEntity> GameActions { get; set; }
+    }
+}

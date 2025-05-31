@@ -5,6 +5,7 @@
         public int Id { get; set; }
         public string AppId { get; set; } = ""; // FK
         public string RoomId { get; set; } = "";
+        public string Phase { get; set; } = "Lobby";
         public bool IsGameStarted { get; set; }
         public int TurnDurationSeconds { get; set; }
         public string? CurrentTurnPlayers { get; set; } // For group turns, store as comma-separated or JSON

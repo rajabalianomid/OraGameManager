@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Ora.GameManaging.Mafia.Data;
-using Ora.GameManaging.Mafia.Data.Repositories;
 using Ora.GameManaging.Mafia.Infrastructure;
 using Ora.GameManaging.Mafia.Infrastructure.Services;
 using Ora.GameManaging.Mafia.Infrastructure.Services.Proxy;
@@ -23,8 +22,6 @@ var config = new ConfigurationBuilder().SetBasePath(Directory.GetCurrentDirector
 
 builder.Services.AddControllers();
 builder.Services.AddGrpc();
-//Add Repositorys
-builder.Services.AddScoped<GeneralAttributeRepository>();
 //Add Services
 builder.Services.AddScoped<SettingService>();
 builder.Services.AddScoped<MafiaEngine>();
