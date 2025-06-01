@@ -8,5 +8,7 @@ namespace Ora.GameManaging.Mafia.Model
         public bool CanSpeak { get; internal set; }
         public List<string>? Abilities { get; internal set; }
         public RoleStatusModel? RoleStatus { get; internal set; }
+        public List<PlayerInfoModel> AlivePlayers { get; set; } = [];
+        public List<PlayerInfoModel> DeadPlayers { get; set; } = [];
     }
 }

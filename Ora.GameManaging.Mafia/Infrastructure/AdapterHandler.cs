@@ -103,7 +103,7 @@ namespace Ora.GameManaging.Mafia.Infrastructure
             }
 
             // Serialize the result to JSON
-            string? resultJson = result != null ? JsonSerializer.Serialize(result) : null;
+            string? resultJson = result != null ? JsonSerializer.Serialize(result, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }) : null;
             return new AdapterReply { DataJson = resultJson };
         }
 

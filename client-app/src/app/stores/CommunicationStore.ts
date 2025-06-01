@@ -5,7 +5,6 @@ import { RoleModel } from "../models/RoleModel ";
 import { MessageModel } from "../models/MessageModel";
 import { TurnModel } from "../models/TurnModel";
 import { ReportModel } from "../models/ReportModel";
-import { CurrentRoomModel } from "../models/CurrentRoomModel";
 import agent from "../features/api/agent";
 import { videoCallToken } from "../models/VideoCallToken";
 import { ActionModelResponse } from "../models/ActionModelResponse";
@@ -64,7 +63,7 @@ export default class CommunicationStore {
 
                 this.connection.on("UpdateGameModelForAllClientExceptCurrentOneInRoom", this.UpdateGameModelForAllClientExceptCurrentOneInRoom);
                 this.connection.on("UpdateRoleModel", this.UpdateRoleModel);
-                this.connection.on("TurnAction", this.TurnAction);
+                this.connection.on("TurnInfo", this.TurnInfo);
                 this.connection.on("PlaySound", this.PlaySound);
                 this.connection.on("ChallengeRequest", this.ChallengeRequest);
                 this.connection.on("ChallengeRequestBack", this.ChallengeRequestBack);
@@ -117,11 +116,11 @@ export default class CommunicationStore {
             console.log('UpdateRoleModel');
         });
     };
-    TurnAction = (model: TurnModel) => {
-        // debugger;
+    TurnInfo = (model: TurnModel) => {
+        debugger;
         runInAction(() => {
             this.turnModel = model;
-            console.log('TurnAction', model);
+            console.log('TurnInfo', this.turnModel);
         });
     };
     PlaySound = (soundName: string) => {

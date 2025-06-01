@@ -20,7 +20,7 @@ function GamePlayers(props: GamePlayersProps) {
             </div>
             <div className="block-content">
                 <p className="text-white text-uppercase fs-sm fw-bold">
-                    {props.Player.userName}
+                    {props.Player.name}
                 </p>
                 <div className="fs-sm text-muted mb-0">
                     <div className="btn-toolbar mb-2 btn-toolbar-center" role="toolbar" aria-label="Icons Toolbar with button groups">

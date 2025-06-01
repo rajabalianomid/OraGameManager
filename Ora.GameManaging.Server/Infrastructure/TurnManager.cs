@@ -3,6 +3,8 @@ using Ora.GameManaging.Server.Infrastructure.Proxy;
 using Ora.GameManaging.Server.Models;
 using Ora.GameManaging.Server.Models.Adapter;
 using System.Collections.Concurrent;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace Ora.GameManaging.Server.Infrastructure
 {
@@ -154,11 +156,19 @@ namespace Ora.GameManaging.Server.Infrastructure
                             if (room != null)
                             {
                                 room.CurrentTurnPlayerId = userId;
-                                var latestinfo = await grpcAdapter.Do<LatestInformationModel, LastInformationRequestModel>(new LastInformationRequestModel { RequestModel = room.Serialize() });
-                                latestinfo.RemindTime = i;
+                                var latestinfo = await grpcAdapter.Do<object, LastInformationRequestModel>(new LastInformationRequestModel { RequestModel = room.Serialize() });
+                                var latestinfoJson = JsonSerializer.Serialize(latestinfo, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+                                var jsonObj = JsonNode.Parse(latestinfoJson)?.AsObject();
+                                if (jsonObj != null)
+                                {
+                                    jsonObj["remindTime"] = i;
+                                    var modifiedJson = jsonObj.ToJsonSerialize();
+
+                                    await hubContext.Clients.Client(currentConnectionId).SendAsync("TurnInfo", jsonObj);
+                                }
                                 // Send timer tick only to the current player
                                 //await hubContext.Clients.Client(currentConnectionId).SendAsync("TimerTick", i);
-                                await hubContext.Clients.Client(currentConnectionId).SendAsync("TurnInfo", latestinfo);
+                                //await hubContext.Clients.Client(currentConnectionId).SendAsync("TurnInfo", latestinfo);
                             }
                         }
 

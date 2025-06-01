@@ -1,5 +1,5 @@
 export interface PlayerModel {
-    id: string;
-    userName: string;
-    fullName: string;
+    userId: string;
+    name: string;
+    status: number;
 }

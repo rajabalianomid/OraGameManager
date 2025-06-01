@@ -1,18 +1,13 @@
-import { ActionModel } from "./ActionModel ";
-import { HasMeetingType, TurnStatusType } from "./Enums";
 import { PlayerModel } from "./PlayerModel";
+import { RoleStatusModel } from "./RoleStatusModel";
 
 export interface TurnModel {
-    turnStatusType: TurnStatusType;
-    gameTurnStatusType: TurnStatusType;
-    isActionValid: boolean;
-    isChallenge: boolean;
-    hasMeeting: HasMeetingType;
-    token: string;
-    meetingRoomId: string;
-    players: PlayerModel[];
-    meetingPlayers: PlayerModel[];
-    diedPlayers: PlayerModel[];
-    playersActionCard: PlayerModel[];
-    actionModel: ActionModel;
+    phase?: string;
+    round: number;
+    canSpeak: boolean;
+    remindTime: number;
+    abilities?: string[];
+    roleStatus?: RoleStatusModel;
+    alivePlayers: PlayerModel[];
+    deadPlayers: PlayerModel[];
 }

@@ -4,7 +4,6 @@ import { useStore } from "../../Store";
 import agent from "../api/agent";
 import GamePlayers from "./GamePlayes";
 import { observer } from "mobx-react-lite";
-import GameAction from "./GameAction";
 import { useParams } from "react-router-dom";
 import { AppConfig } from "../../models/AppConfig";
 
@@ -31,7 +30,7 @@ function GamePlan() {
                 return;
             }
             else {
-                model = { id: Number(roomId) };
+                model = { id: roomId };
             }
             try {
                 debugger;
@@ -62,13 +61,14 @@ function GamePlan() {
         setPlayersFullScreen(!playersFullScreen);
     }
 
-
+    console.log("alivePlayers", communicationStore.turnModel?.alivePlayers);
     return (
         <main id="main-container">
+            
             <div className="row g-0 flex-md-grow-1">
                 <div className="col-md-4 col-lg-5 col-xl-3 bg-body-dark h100-scroll">
                     <div className="content">
-                        <div className="d-lg-none push">
+                        <div className="d-lg push">
                             <div className={`block block-rounded ${playersCloseBox ? "block-mode-hidden" : ""} ${playersFullScreen ? "block-mode-fullscreen" : ""} `}>
                                 <div className="block-header block-header-default block-header-rtl">
                                     <h3 className="block-title">Players</h3>
@@ -79,8 +79,13 @@ function GamePlan() {
                                 </div>
                                 <div className="block-content">
                                     {
-                                        [...(communicationStore.turnModel?.players || []), ...(communicationStore.turnModel?.diedPlayers || [])].map((player, index) => (
-                                            <GamePlayers key={index} Player={player} Died={communicationStore.turnModel?.diedPlayers.includes(player) ?? false} />
+                                        (communicationStore.turnModel?.alivePlayers || []).map((player, index) => (
+                                            <GamePlayers key={index} Player={player} Died={false} />
+                                        ))
+                                    }
+                                    {
+                                        (communicationStore.turnModel?.deadPlayers || []).map((player, index) => (
+                                            <GamePlayers key={index} Player={player} Died={true} />
                                         ))
                                     }
                                 </div>
@@ -88,8 +93,8 @@ function GamePlan() {
                         </div>
                         <div id="side-content" className="d-none d-lg-block push">
                             {
-                                [...(communicationStore.turnModel?.players || []), ...(communicationStore.turnModel?.diedPlayers || [])].map((player, index) => (
-                                    <GamePlayers key={index} Player={player} Died={communicationStore.turnModel?.diedPlayers.includes(player) ?? false} />
+                                [...(communicationStore.turnModel?.deadPlayers || []), ...(communicationStore.turnModel?.deadPlayers || [])].map((player, index) => (
+                                    <GamePlayers key={index} Player={player} Died={communicationStore.turnModel?.deadPlayers.includes(player) ?? false} />
                                 ))
                             }
                         </div>
@@ -97,12 +102,12 @@ function GamePlan() {
                 </div>
                 <div className="col-md-8 col-lg-7 col-xl-9">
                     <div className="content content-full">
-                        {
+                        {/* {
                             communicationStore.turnModel?.actionModel &&
                             communicationStore.turnModel?.actionModel?.gameUsers &&
                             communicationStore.turnModel?.actionModel?.gameUsers.length > 0 &&
                             (<GameAction isValid={communicationStore.turnModel?.isActionValid ?? false} actionModel={communicationStore.turnModel.actionModel} />)
-                        }
+                        } */}
                     </div>
                 </div>
             </div>

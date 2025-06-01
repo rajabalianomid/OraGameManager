@@ -26,20 +26,56 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
 
         public async Task<LatestInformationResponseModel> PrepareLatestInformationAsync(string requestModel)
         {
+            // Deserialize the request model from JSON
             var model = JsonSerializer.Deserialize<LatestInformationRequestModel>(requestModel)
                 ?? throw new ArgumentNullException(nameof(requestModel), "Request model cannot be null");
 
+            // Find the current turn player
             var targetPlayer = model.Players.FirstOrDefault(w => w.UserId == model.CurrentTurnPlayerId)
                 ?? throw new ArgumentException($"Player with UserId {model.CurrentTurnPlayerId} not found in the request model.", nameof(requestModel));
 
-            var lastPartUserId = model.CurrentTurnPlayerId.Split(":").Last();
-            var roleStatusEntity = await dbContext.RoleStatuses
+            // Get all role statuses for this room and application
+            var allRoleStatuses = await dbContext.RoleStatuses
                 .AsNoTracking()
-                .FirstOrDefaultAsync(rs =>
+                .Where(rs =>
                     rs.ApplicationInstanceId == model.AppId &&
-                    rs.UserId == lastPartUserId &&
-                    rs.RoomId == targetPlayer.RoomId &&
-                    rs.RoleName == targetPlayer.Role);
+                    rs.RoomId == targetPlayer.RoomId)
+                .ToListAsync();
+
+            var statusLookup = allRoleStatuses
+                .ToDictionary(
+                    rs => (rs.UserId, rs.RoleName),
+                    rs => rs
+                );
+
+            foreach (var player in model.Players)
+            {
+                var userIdPart = player.UserId.Split(':').Last();
+                if (statusLookup.TryGetValue((userIdPart, player.Role), out var statusEntity))
+                {
+                    player.RoleStatus = new RoleStatusModel
+                    {
+                        RoleName = statusEntity.RoleName,
+                        Health = statusEntity.Health,
+                        AbilityCount = statusEntity.AbilityCount,
+                        SelfAbilityCount = statusEntity.SelfAbilityCount,
+                        HasNightAbility = statusEntity.HasNightAbility,
+                        HasDayAbility = statusEntity.HasDayAbility,
+                        CanSpeak = statusEntity.CanSpeak,
+                        DarkSide = statusEntity.DarkSide,
+                        Abilities = statusEntity.Abilities
+                    };
+                }
+                else
+                {
+                    player.RoleStatus = null!;
+                }
+            }
+
+            // Find the RoleStatus for the current turn player
+            var lastPartUserId = model.CurrentTurnPlayerId.Split(":").Last();
+            var roleStatusEntity = allRoleStatuses
+                .FirstOrDefault(rs => rs.UserId == lastPartUserId && rs.RoleName == targetPlayer.Role);
 
             RoleStatusModel? roleStatus = null;
             if (roleStatusEntity is not null)
@@ -68,16 +104,17 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
                 .Where(a => abilityNames.Contains(a.Name) && a.RelatedPhase == phase)
                 .ToListAsync();
 
-            // Build the response
+            // Build the response model
             var response = new LatestInformationResponseModel
             {
                 Phase = phase,
-                Round = model.TurnDurationSeconds, // Or another property if you track round number elsewhere
+                Round = model.TurnDurationSeconds,
                 CanSpeak = roleStatus?.CanSpeak ?? false,
                 RoleStatus = roleStatus,
-                Abilities = [.. abilities.Select(a => a.Name)]
+                Abilities = [.. abilities.Select(a => a.Name)],
+                AlivePlayers = [.. model.Players.Where(w => w.IsAlive)],
+                DeadPlayers = [.. model.Players.Where(w => !w.IsAlive)]
             };
-
             //// Example: Assume the current role is Doctor
             //var roleActions = GetRoleActions(targetPlayer.Role, targetPlayer.RoomId);
             //foreach (var action in roleActions)
@@ -92,7 +129,6 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
             //// At this point, targetPlayer.Health is updated if the action was executed
             //await Task.CompletedTask;
             //return new LatestInformationResponseModel();
-
             return response;
         }
 
