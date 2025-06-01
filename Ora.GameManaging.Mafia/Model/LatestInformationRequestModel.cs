@@ -7,5 +7,6 @@
         public List<PlayerInfoModel> Players { get; set; } = [];
         public string CurrentTurnPlayerId { get; set; } = string.Empty;
         public int TurnDurationSeconds { get; set; } = 0;
+        public string Phase { get; set; } = string.Empty;
     }
 }

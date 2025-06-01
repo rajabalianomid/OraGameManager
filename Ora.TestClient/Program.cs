@@ -296,6 +296,10 @@ class Program
         {
             Console.WriteLine($"[TIMER] {seconds} seconds left");
         });
+        connection.On<object>("TurnInfo", info =>
+        {
+            Console.WriteLine("[TurnInfo] Received: " + JsonSerializer.Serialize(info));
+        });
         connection.On<string>("TurnTimeout", msg =>
         {
             Console.WriteLine($"!!! Turn timeout: {msg}");
@@ -331,6 +335,10 @@ class Program
             connection.On<int>("TimerTick", seconds =>
             {
                 Console.WriteLine($"[{playerName}] [TIMER] {seconds} seconds left");
+            });
+            connection.On<object>("TurnInfo", info =>
+            {
+                Console.WriteLine("[TurnInfo] Received: " + JsonSerializer.Serialize(info));
             });
 
             await connection.StartAsync();

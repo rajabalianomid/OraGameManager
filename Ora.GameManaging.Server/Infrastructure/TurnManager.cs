@@ -1,12 +1,8 @@
-﻿using Google.Protobuf.WellKnownTypes;
-using Grpc.Net.ClientFactory;
-using Microsoft.AspNetCore.SignalR;
-using Ora.GameManaging.Server.Data.Migrations;
+﻿using Microsoft.AspNetCore.SignalR;
 using Ora.GameManaging.Server.Infrastructure.Proxy;
 using Ora.GameManaging.Server.Models;
 using Ora.GameManaging.Server.Models.Adapter;
 using System.Collections.Concurrent;
-using System.Security.AccessControl;
 
 namespace Ora.GameManaging.Server.Infrastructure
 {
@@ -36,7 +32,7 @@ namespace Ora.GameManaging.Server.Infrastructure
                 TokenSource = new CancellationTokenSource(),
                 IsPaused = false,
                 RemainingSeconds = durationSeconds,
-                TargetPlayers = userIds.ToList()
+                TargetPlayers = [.. userIds]
             };
             _groupTimers[roomId] = state;
 
@@ -158,10 +154,12 @@ namespace Ora.GameManaging.Server.Infrastructure
                             if (room != null)
                             {
                                 room.CurrentTurnPlayerId = userId;
-                                var latestinfo = await grpcAdapter.Do<LatestInformationModel, LastInformationModel>(new LastInformationModel { RequestModel = room.Serialize() });
+                                var latestinfo = await grpcAdapter.Do<LatestInformationModel, LastInformationRequestModel>(new LastInformationRequestModel { RequestModel = room.Serialize() });
+                                latestinfo.RemindTime = i;
+                                // Send timer tick only to the current player
+                                //await hubContext.Clients.Client(currentConnectionId).SendAsync("TimerTick", i);
+                                await hubContext.Clients.Client(currentConnectionId).SendAsync("TurnInfo", latestinfo);
                             }
-                            // Send timer tick only to the current player
-                            await hubContext.Clients.Client(currentConnectionId).SendAsync("TimerTick", i);
                         }
 
                         if (i == 0)

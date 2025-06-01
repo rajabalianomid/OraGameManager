@@ -15,6 +15,8 @@ namespace Ora.GameManaging.Server.Models
         public ConcurrentDictionary<string, PlayerInfo> Players { get; set; } = new();
         public string? CurrentTurnPlayerId { get; set; }
         public int TurnDurationSeconds { get; set; } = 10;
+        public string Phase { get; set; } = "Lobey";
+        public float Round { get; set; }
 
         public string Serialize()
         {
@@ -24,7 +26,9 @@ namespace Ora.GameManaging.Server.Models
                 RoomId,
                 CurrentTurnPlayerId,
                 Players = Players.Values.Select(p => new { p.ConnectionId, p.UserId, p.Name, p.Role, p.Status, RoomId }),
-                TurnDurationSeconds
+                TurnDurationSeconds,
+                Phase,
+                Round
             }.ToJsonSerialize();
         }
     }

@@ -1,6 +1,12 @@
-﻿namespace Ora.GameManaging.Mafia.Model
+﻿
+namespace Ora.GameManaging.Mafia.Model
 {
     public class LatestInformationResponseModel
     {
+        public string? Phase { get; internal set; }
+        public int Round { get; internal set; }
+        public bool CanSpeak { get; internal set; }
+        public List<string>? Abilities { get; internal set; }
+        public RoleStatusModel? RoleStatus { get; internal set; }
     }
 }

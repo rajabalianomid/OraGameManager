@@ -11,6 +11,8 @@ namespace Ora.GameManaging.Mafia.Data.Mapping
 
             builder.HasKey(e => e.Id);
 
+            builder.Property(e => e.Id).ValueGeneratedNever();
+
             builder.Property(e => e.Name)
                 .IsRequired()
                 .HasMaxLength(100);
@@ -25,6 +27,8 @@ namespace Ora.GameManaging.Mafia.Data.Mapping
 
             builder.Property(e => e.IsDayAbility)
                 .IsRequired();
+
+            builder.Property(e => e.RelatedPhase).HasMaxLength(50);
 
             builder.HasMany(e => e.GameActions).WithOne(w => w.Ability)
                 .HasForeignKey(f => f.AbilityId)

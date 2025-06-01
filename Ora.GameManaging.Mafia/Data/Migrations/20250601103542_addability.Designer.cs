@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Ora.GameManaging.Mafia.Data;
 
@@ -11,9 +12,11 @@ using Ora.GameManaging.Mafia.Data;
 namespace Ora.GameManaging.Mafia.Data.Migrations
 {
     [DbContext(typeof(MafiaDbContext))]
-    partial class MafiaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250601103542_addability")]
+    partial class addability
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -178,10 +181,6 @@ namespace Ora.GameManaging.Mafia.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<string>("RelatedPhase")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
                     b.HasKey("Id");
 
                     b.ToTable("Abilities", (string)null);
@@ -271,8 +270,8 @@ namespace Ora.GameManaging.Mafia.Data.Migrations
                     b.Property<int>("AbilityId")
                         .HasColumnType("int");
 
-                    b.Property<int>("ActionTime")
-                        .HasColumnType("int");
+                    b.Property<DateTime>("ActionTime")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("ActorRole")
                         .IsRequired()

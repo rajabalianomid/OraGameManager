@@ -8,6 +8,7 @@
         public string? Expression { get; set; } // For dynamic logic, if needed
         public bool IsNightAbility { get; set; }
         public bool IsDayAbility { get; set; }
+        public string? RelatedPhase { get; set; }
 
         public required ICollection<GameActionHistoryEntity> GameActions { get; set; }
     }

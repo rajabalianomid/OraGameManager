@@ -1,6 +1,6 @@
 ﻿namespace Ora.GameManaging.Server.Models.Adapter
 {
-    public class LastInformationModel : AdapterModel
+    public class LastInformationRequestModel : AdapterModel
     {
         public override string ActionName => "PrepareLatestInformationAsync";
         public override string TypeName => "MafiaEngine";

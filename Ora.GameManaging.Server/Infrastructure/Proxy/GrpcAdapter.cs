@@ -20,7 +20,7 @@ public class GrpcAdapter(GrpcClientFactory clientFactory)
         });
 
         // Assuming TOut is deserialized from the response. Adjust as needed.
-        return JsonSerializer.Deserialize<TOut>(response.DataJson ?? string.Empty)
+        return JsonSerializer.Deserialize<TOut>(response.DataJson ?? string.Empty, new JsonSerializerOptions { PropertyNameCaseInsensitive = false })
                ?? throw new InvalidOperationException("Failed to deserialize the response.");
     }
 }

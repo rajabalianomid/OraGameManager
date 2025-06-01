@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Ora.GameManaging.Mafia.Data;
 
@@ -11,9 +12,11 @@ using Ora.GameManaging.Mafia.Data;
 namespace Ora.GameManaging.Mafia.Data.Migrations
 {
     [DbContext(typeof(MafiaDbContext))]
-    partial class MafiaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250601103335_dropability")]
+    partial class dropability
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -155,38 +158,6 @@ namespace Ora.GameManaging.Mafia.Data.Migrations
                     b.ToTable("UserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("Ora.GameManaging.Mafia.Data.AbilityEntity", b =>
-                {
-                    b.Property<int>("Id")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("Expression")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsDayAbility")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsNightAbility")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("RelatedPhase")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Abilities", (string)null);
-                });
-
             modelBuilder.Entity("Ora.GameManaging.Mafia.Data.ApplicationUser", b =>
                 {
                     b.Property<string>("Id")
@@ -271,8 +242,8 @@ namespace Ora.GameManaging.Mafia.Data.Migrations
                     b.Property<int>("AbilityId")
                         .HasColumnType("int");
 
-                    b.Property<int>("ActionTime")
-                        .HasColumnType("int");
+                    b.Property<DateTime>("ActionTime")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("ActorRole")
                         .IsRequired()
@@ -309,8 +280,6 @@ namespace Ora.GameManaging.Mafia.Data.Migrations
                         .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("AbilityId");
 
                     b.ToTable("GameActionHistories", (string)null);
                 });
@@ -462,22 +431,6 @@ namespace Ora.GameManaging.Mafia.Data.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("Ora.GameManaging.Mafia.Data.GameActionHistoryEntity", b =>
-                {
-                    b.HasOne("Ora.GameManaging.Mafia.Data.AbilityEntity", "Ability")
-                        .WithMany("GameActions")
-                        .HasForeignKey("AbilityId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Ability");
-                });
-
-            modelBuilder.Entity("Ora.GameManaging.Mafia.Data.AbilityEntity", b =>
-                {
-                    b.Navigation("GameActions");
                 });
 #pragma warning restore 612, 618
         }

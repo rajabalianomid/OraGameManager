@@ -30,7 +30,9 @@ namespace Ora.GameManaging.Server
                 var key = $"{dbRoom.AppId}:{dbRoom.RoomId}";
                 var room = new GameRoom(dbRoom.AppId, dbRoom.RoomId)
                 {
-                    TurnDurationSeconds = dbRoom.TurnDurationSeconds
+                    TurnDurationSeconds = dbRoom.TurnDurationSeconds,
+                    Phase = dbRoom.Phase,
+                    Round = dbRoom.Round
                 };
                 foreach (var dbPlayer in dbRoom.Players)
                 {
