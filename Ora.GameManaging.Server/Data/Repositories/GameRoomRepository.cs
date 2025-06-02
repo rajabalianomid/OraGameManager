@@ -52,5 +52,15 @@ namespace Ora.GameManaging.Server.Data.Repositories
                 await db.SaveChangesAsync();
             }
         }
+        public async Task UpdateCurrentTurnAsync(string appId, string roomId, string userId)
+        {
+            var foundRoom = await db.Rooms
+                .FirstOrDefaultAsync(r => r.AppId == appId && r.RoomId == roomId);
+            if (foundRoom != null)
+            {
+                foundRoom.CurrentTurnPlayer = userId;
+                await db.SaveChangesAsync();
+            }
+        }
     }
 }

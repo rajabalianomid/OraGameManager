@@ -1,14 +1,14 @@
 ﻿using Microsoft.AspNetCore.SignalR;
+using Ora.GameManaging.Server.Data;
+using Ora.GameManaging.Server.Data.Repositories;
 using Ora.GameManaging.Server.Infrastructure.Proxy;
-using Ora.GameManaging.Server.Models;
+using Ora.GameManaging.Server.Infrastructure.Services;
 using Ora.GameManaging.Server.Models.Adapter;
 using System.Collections.Concurrent;
-using System.Text.Json;
-using System.Text.Json.Nodes;
 
 namespace Ora.GameManaging.Server.Infrastructure
 {
-    public class TurnManager(IHubContext<GameHub> hubContext, GrpcAdapter grpcAdapter)
+    public class TurnManager(IHubContext<GameHub> hubContext, IServiceProvider serviceProvider, GrpcAdapter grpcAdapter)
     {
         // Callback for notifying when a turn is finished
         private Action<string>? _turnFinishedCallback;
@@ -133,6 +133,16 @@ namespace Ora.GameManaging.Server.Infrastructure
                 foreach (var userId in state.TargetPlayers)
                 {
                     int seconds = state.RemainingSeconds;
+                    string? currentConnectionId = null;
+                    if (GameManager.Rooms.TryGetValue(roomId, out var room) &&
+                        room.Players.TryGetValue(userId, out var player))
+                    {
+                        using var scope = serviceProvider.CreateScope();
+                        var gameRoomService = scope.ServiceProvider.GetRequiredService<IGameRoomService>();
+                        await gameRoomService.UpdateCurrentTurnAndSyncCacheAsync(room.AppId, roomId.Split(":").Last(), userId); // Ensure current turn is set
+                        currentConnectionId = player.ConnectionId;
+                    }
+
                     for (int i = seconds; i >= 0; i--)
                     {
                         state.RemainingSeconds = i;
@@ -142,14 +152,6 @@ namespace Ora.GameManaging.Server.Infrastructure
                             await Task.Delay(200, state.TokenSource.Token);
                         }
 
-                        string? currentConnectionId = null;
-                        if (GameManager.Rooms.TryGetValue(roomId, out var room) &&
-                            room.Players.TryGetValue(userId, out var player))
-                        {
-                            currentConnectionId = player.ConnectionId;
-
-                        }
-
                         if (!string.IsNullOrEmpty(currentConnectionId))
                         {
                             // Ensure `room` is not null before using it
@@ -157,8 +159,7 @@ namespace Ora.GameManaging.Server.Infrastructure
                             {
                                 room.CurrentTurnPlayerId = userId;
                                 var latestinfo = await grpcAdapter.Do<object, LastInformationRequestModel>(new LastInformationRequestModel { RequestModel = room.Serialize() });
-                                var latestinfoJson = JsonSerializer.Serialize(latestinfo, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
-                                var jsonObj = JsonNode.Parse(latestinfoJson)?.AsObject();
+                                var jsonObj = latestinfo.ToJsonNode();
                                 if (jsonObj != null)
                                 {
                                     jsonObj["remindTime"] = i;

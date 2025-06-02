@@ -375,6 +375,9 @@ namespace Ora.GameManaging.Mafia.Data.Migrations
                     b.Property<bool>("CanSpeak")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("Challenge")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("DarkSide")
                         .HasColumnType("bit");
 
@@ -401,6 +404,9 @@ namespace Ora.GameManaging.Mafia.Data.Migrations
                         .HasColumnType("nvarchar(50)");
 
                     b.Property<int>("SelfAbilityCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Turn")
                         .HasColumnType("int");
 
                     b.Property<string>("UserId")

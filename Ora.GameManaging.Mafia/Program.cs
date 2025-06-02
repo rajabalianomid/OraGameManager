@@ -25,6 +25,7 @@ builder.Services.AddGrpc();
 //Add Services
 builder.Services.AddScoped<SettingService>();
 builder.Services.AddScoped<MafiaEngine>();
+builder.Services.AddScoped<RoleStatusService>();
 //Grpc
 builder.Services.AddScoped<GameRoomProxy>();
 builder.Services.AddScoped<AdapterHandler>();

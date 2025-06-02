@@ -12,8 +12,8 @@ using Ora.GameManaging.Mafia.Data;
 namespace Ora.GameManaging.Mafia.Data.Migrations
 {
     [DbContext(typeof(MafiaDbContext))]
-    [Migration("20250601103542_addability")]
-    partial class AddAbility
+    [Migration("20250602135403_AddKeepTurnInRoleStatus")]
+    partial class AddKeepTurnInRoleStatus
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -181,6 +181,10 @@ namespace Ora.GameManaging.Mafia.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<string>("RelatedPhase")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.HasKey("Id");
 
                     b.ToTable("Abilities", (string)null);
@@ -270,8 +274,8 @@ namespace Ora.GameManaging.Mafia.Data.Migrations
                     b.Property<int>("AbilityId")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("ActionTime")
-                        .HasColumnType("datetime2");
+                    b.Property<int>("ActionTime")
+                        .HasColumnType("int");
 
                     b.Property<string>("ActorRole")
                         .IsRequired()
@@ -374,6 +378,9 @@ namespace Ora.GameManaging.Mafia.Data.Migrations
                     b.Property<bool>("CanSpeak")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("Challenge")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("DarkSide")
                         .HasColumnType("bit");
 
@@ -384,6 +391,9 @@ namespace Ora.GameManaging.Mafia.Data.Migrations
                         .HasColumnType("bit");
 
                     b.Property<int>("Health")
+                        .HasColumnType("int");
+
+                    b.Property<int>("KeepTurn")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("LastUpdated")
@@ -400,6 +410,9 @@ namespace Ora.GameManaging.Mafia.Data.Migrations
                         .HasColumnType("nvarchar(50)");
 
                     b.Property<int>("SelfAbilityCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Turn")
                         .HasColumnType("int");
 
                     b.Property<string>("UserId")

@@ -4,7 +4,7 @@ using Ora.GameManaging.Server.Data;
 
 namespace Ora.GameManaging.Server.Infrastructure.Services
 {
-    public interface IGameRoomServices
+    public interface IGameRoomService
     {
         Task<GameRoomEntity?> GetRoomByIdAsync(string roomId, CancellationToken cancellationToken = default);
         Task<bool> CreateRoomAsync(GameRoomEntity room, CancellationToken cancellationToken = default);
@@ -12,5 +12,6 @@ namespace Ora.GameManaging.Server.Infrastructure.Services
         Task<bool> DeleteRoomAsync(string roomId, CancellationToken cancellationToken = default);
         Task<GetAllRoomsReply> GetAllRooms(GetAllRoomsRequest request,ServerCallContext context);
         Task<GetAllRoomsReply> GetRoomsByAppId(GetRoomByAppIdRequest request, ServerCallContext context);
+        Task UpdateCurrentTurnAndSyncCacheAsync(string appId, string roomId, string userId);
     }
 }

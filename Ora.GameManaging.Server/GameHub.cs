@@ -32,7 +32,8 @@ namespace Ora.GameManaging.Server
                 {
                     TurnDurationSeconds = dbRoom.TurnDurationSeconds,
                     Phase = dbRoom.Phase,
-                    Round = dbRoom.Round
+                    Round = dbRoom.Round,
+                    CurrentTurnPlayerId = dbRoom.CurrentTurnPlayer
                 };
                 foreach (var dbPlayer in dbRoom.Players)
                 {

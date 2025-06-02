@@ -13,7 +13,7 @@ namespace Ora.GameManaging.Mafia.Data.Migrations
 {
     [DbContext(typeof(MafiaDbContext))]
     [Migration("20250601103335_dropability")]
-    partial class dropability
+    partial class DropAbility
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

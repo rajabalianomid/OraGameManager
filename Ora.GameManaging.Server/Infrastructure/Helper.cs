@@ -1,5 +1,6 @@
 using Ora.GameManaging.Server.Models;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace Ora.GameManaging.Server.Infrastructure
 {
@@ -28,6 +29,12 @@ namespace Ora.GameManaging.Server.Infrastructure
                 return playerInfo;
             }
             return null;
+        }
+
+        public static JsonObject? ToJsonNode(this object request)
+        {
+            var latestinfoJson = JsonSerializer.Serialize(request, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+            return JsonNode.Parse(latestinfoJson)?.AsObject();
         }
     }
 }

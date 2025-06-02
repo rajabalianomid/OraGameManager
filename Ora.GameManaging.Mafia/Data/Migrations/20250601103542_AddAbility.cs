@@ -5,7 +5,7 @@
 namespace Ora.GameManaging.Mafia.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class addability : Migration
+    public partial class AddAbility : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

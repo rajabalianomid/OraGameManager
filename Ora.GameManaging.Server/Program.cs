@@ -98,7 +98,7 @@ Host.CreateDefaultBuilder(args)
             services.AddScoped<EventRepository>();
             services.AddScoped<RoomRepository>();
             //Services
-            services.AddScoped<IGameRoomServices, GameRoomServices>();
+            services.AddScoped<IGameRoomService, GameRoomService>();
             //GRPC
             services.AddSingleton<GrpcHelloService>();
             services.AddSingleton<GrpcAdapter>();
@@ -137,7 +137,7 @@ Host.CreateDefaultBuilder(args)
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapHub<GameHub>("/gamehub").RequireCors("CorsPolicy");
-                endpoints.MapGrpcService<GameRoomServices>();
+                endpoints.MapGrpcService<GameRoomService>();
             });
         });
     })

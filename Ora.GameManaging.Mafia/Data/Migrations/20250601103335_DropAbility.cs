@@ -5,7 +5,7 @@
 namespace Ora.GameManaging.Mafia.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class dropability : Migration
+    public partial class DropAbility : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

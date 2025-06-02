@@ -3,13 +3,17 @@ using Microsoft.EntityFrameworkCore;
 using Ora.GameManaging.Mafia.Protos;
 using Ora.GameManaging.Server.Data;
 using Ora.GameManaging.Server.Data.Repositories;
+using Ora.GameManaging.Server.Models;
 using Ora.GameManaging.Server.Models.Mapping;
 using System.Threading;
 
 namespace Ora.GameManaging.Server.Infrastructure.Services
 {
-    public class GameRoomServices(RoomRepository repository) : GameRoomGrpc.GameRoomGrpcBase, IGameRoomServices
+    public class GameRoomService(RoomRepository repository, GameRoomRepository gameRoomRepository) : GameRoomGrpc.GameRoomGrpcBase, IGameRoomService
     {
+        private readonly RoomRepository repository = repository;
+        private readonly GameRoomRepository gameRoomRepository = gameRoomRepository;
+
         public Task<bool> CreateRoomAsync(GameRoomEntity room, CancellationToken cancellationToken = default)
             => repository.AddAsync(room, cancellationToken);
 
@@ -21,6 +25,30 @@ namespace Ora.GameManaging.Server.Infrastructure.Services
 
         public Task<bool> UpdateRoomAsync(GameRoomEntity room, CancellationToken cancellationToken = default)
             => repository.UpdateAsync(room, cancellationToken);
+
+        public async Task UpdateCurrentTurnAndSyncCacheAsync(string appId, string roomId, string userId)
+        {
+            // Update the current turn in the database
+            await gameRoomRepository.UpdateCurrentTurnAsync(appId, roomId, userId);
+
+            // Retrieve the latest room data from the database
+            var updatedRoomEntity = await gameRoomRepository.GetByRoomIdAsync(appId, roomId);
+            if (updatedRoomEntity != null)
+            {
+                // Map the entity to the GameRoom model
+                var updatedRoom = new GameRoom(updatedRoomEntity.AppId, updatedRoomEntity.RoomId)
+                {
+                    CurrentTurnPlayerId = updatedRoomEntity.CurrentTurnPlayer,
+                    TurnDurationSeconds = updatedRoomEntity.TurnDurationSeconds,
+                    Phase = updatedRoomEntity.Phase,
+                    Round = updatedRoomEntity.Round,
+                    // TODO: Map Players if needed
+                };
+
+                var key = $"{appId}:{roomId}";
+                GameManager.Rooms[key] = updatedRoom;
+            }
+        }
 
         public override async Task<GetAllRoomsReply> GetAllRooms(GetAllRoomsRequest request, ServerCallContext context)
         {

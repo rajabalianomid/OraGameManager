@@ -16,6 +16,8 @@ namespace Ora.GameManaging.Mafia.Data
         public bool HasDayAbility { get; set; }
         public bool CanSpeak { get; set; }
         public bool DarkSide { get; set; }
+        public int Turn { get; set; }
+        public bool Challenge { get; set; }
         public required string Abilities { get; set; }
 
         public DateTime LastUpdated { get; set; } = DateTime.UtcNow;

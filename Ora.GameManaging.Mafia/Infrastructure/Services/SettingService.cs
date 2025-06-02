@@ -46,6 +46,11 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
                         .ToListAsync());
             foreach (var role in availableRoles.Distinct(StringComparer.OrdinalIgnoreCase))
             {
+                var maxTurn = dbContext.RoleStatuses
+                        .Where(rs => rs.ApplicationInstanceId == applicationInstanceId && rs.RoomId == roomId)
+                        .Select(rs => (int?)rs.Turn)
+                        .OrderByDescending(o => o)
+                        .FirstOrDefault() ?? 0;
                 var availableCount = availableRoles.Count(r => string.Equals(r, role, StringComparison.OrdinalIgnoreCase));
                 var assignedCount = assignedRoles.Count(r => string.Equals(r, role, StringComparison.OrdinalIgnoreCase));
                 if (assignedCount < availableCount)
@@ -81,6 +86,7 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
                         UserId = userId,
                         RoleName = role,
                         Abilities = string.Empty, // Initialize with empty abilities
+                        Turn = maxTurn + 2, // Increment turn for the new role
                         LastUpdated = DateTime.UtcNow
                     };
 

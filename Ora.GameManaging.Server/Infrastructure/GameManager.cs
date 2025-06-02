@@ -4,6 +4,8 @@ using Ora.GameManaging.Server.Infrastructure.Proxy;
 using Ora.GameManaging.Server.Models;
 using Ora.GameManaging.Server.Models.Adapter;
 using System.Collections.Concurrent;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace Ora.GameManaging.Server.Infrastructure
 {
@@ -137,10 +139,12 @@ namespace Ora.GameManaging.Server.Infrastructure
                         }
 
                         // Build the rotating queue at the start of each round
-                        var rotatingQueue = BuildCustomPlayerQueue(room);
+                        var rotatingQueue = await BuildCustomPlayerQueue(room);
 
                         // Start rotating turn for this queue
                         _turnManager.StartGroupTurnRotating(key, rotatingQueue, room.TurnDurationSeconds);
+
+
 
                         // Wait for the turn to finish (implement a mechanism or event to know when to continue)
                         await WaitForTurnToFinishAsync(key, cts.Token);
@@ -158,14 +162,14 @@ namespace Ora.GameManaging.Server.Infrastructure
         }
 
         // Example: Build your custom queue based on your game logic
-        private List<string> BuildCustomPlayerQueue(GameRoom room)
+        private async Task<List<string>> BuildCustomPlayerQueue(GameRoom room)
         {
-            // Example: Only online players, or any custom logic
-            return room.Players.Values
-                .Where(p => p.Status == PlayerStatus.Online)
-                .OrderBy(p => p.Name) // or any custom order
-                .Select(p => p.UserId)
-                .ToList();
+            var result = await _grpcAdapter.Do<object, TurnModel>(new TurnModel { ApplicationInstanceId = room.AppId, RoomId = room.RoomId });
+            if (result is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.Array)
+            {
+                return [.. jsonElement.EnumerateArray().Select(e => e.GetString() ?? string.Empty)];
+            }
+            return [];
         }
 
         // Example: Wait for the turn to finish (implement this based on your timer/turn logic)
@@ -229,5 +233,31 @@ namespace Ora.GameManaging.Server.Infrastructure
             if (_gameLoopTokens.TryRemove(key, out var cts))
                 cts.Cancel();
         }
+
+        // Add this method to GameManager to allow dynamic change of rotating order during a round
+        public async Task ChangeRotatingOrderAndRestartAsync(string appId, string roomId, List<string> newOrder, int? durationSeconds = null)
+        {
+            var key = $"{appId}:{roomId}";
+
+            // 1. Cancel the current rotating turn (if any)
+            _turnManager.Cancel(key);
+
+
+            // 3. Start a new rotating turn with the new order
+            if (!Rooms.TryGetValue(key, out var room))
+                return;
+
+            int duration = durationSeconds ?? room.TurnDurationSeconds;
+            _turnManager.StartGroupTurnRotating(key, newOrder, duration);
+
+            // 4. Optionally notify players about the new order/turn
+            await _notification.SendTurnChangedToPlayers(
+                newOrder.Select(id => room.Players[id].ConnectionId).ToList(),
+                room,
+                "Turn order updated due to challenge!"
+            );
+        }
+
+        
     }
 }
