@@ -35,18 +35,8 @@ namespace Ora.GameManaging.Server.Infrastructure.Services
             var updatedRoomEntity = await gameRoomRepository.GetByRoomIdAsync(appId, roomId);
             if (updatedRoomEntity != null)
             {
-                // Map the entity to the GameRoom model
-                var updatedRoom = new GameRoom(updatedRoomEntity.AppId, updatedRoomEntity.RoomId)
-                {
-                    CurrentTurnPlayerId = updatedRoomEntity.CurrentTurnPlayer,
-                    TurnDurationSeconds = updatedRoomEntity.TurnDurationSeconds,
-                    Phase = updatedRoomEntity.Phase,
-                    Round = updatedRoomEntity.Round,
-                    // TODO: Map Players if needed
-                };
-
                 var key = $"{appId}:{roomId}";
-                GameManager.Rooms[key] = updatedRoom;
+                GameManager.Rooms[key].CurrentTurnPlayerId = updatedRoomEntity.CurrentTurnPlayer;
             }
         }
 

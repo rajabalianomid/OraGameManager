@@ -10,6 +10,7 @@
         public bool HasDayAbility { get; set; }
         public bool CanSpeak { get; set; }
         public bool DarkSide { get; set; }
+        public bool Challenge { get; set; }
         public required string Abilities { get; set; }
     }
 }

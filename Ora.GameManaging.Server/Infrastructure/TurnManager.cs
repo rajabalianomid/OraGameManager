@@ -3,6 +3,7 @@ using Ora.GameManaging.Server.Data;
 using Ora.GameManaging.Server.Data.Repositories;
 using Ora.GameManaging.Server.Infrastructure.Proxy;
 using Ora.GameManaging.Server.Infrastructure.Services;
+using Ora.GameManaging.Server.Models;
 using Ora.GameManaging.Server.Models.Adapter;
 using System.Collections.Concurrent;
 
@@ -19,7 +20,7 @@ namespace Ora.GameManaging.Server.Infrastructure
             public CancellationTokenSource TokenSource { get; set; } = new();
             public bool IsPaused { get; set; }
             public int RemainingSeconds { get; set; }
-            public List<string> TargetPlayers { get; set; } = new();
+            public List<string> TargetPlayers { get; set; } = [];
         }
 
         private readonly ConcurrentDictionary<string, GroupTimerState> _groupTimers = new();
@@ -130,8 +131,9 @@ namespace Ora.GameManaging.Server.Infrastructure
         {
             try
             {
-                foreach (var userId in state.TargetPlayers)
+                for (int idx = 0; idx < state.TargetPlayers.Count; idx++)
                 {
+                    var userId = state.TargetPlayers[idx];
                     int seconds = state.RemainingSeconds;
                     string? currentConnectionId = null;
                     if (GameManager.Rooms.TryGetValue(roomId, out var room) &&
@@ -158,8 +160,18 @@ namespace Ora.GameManaging.Server.Infrastructure
                             if (room != null)
                             {
                                 room.CurrentTurnPlayerId = userId;
-                                var latestinfo = await grpcAdapter.Do<object, LastInformationRequestModel>(new LastInformationRequestModel { RequestModel = room.Serialize() });
-                                var jsonObj = latestinfo.ToJsonNode();
+                                var latestinfo = await grpcAdapter.Do<ThridPartInfo, LastInformationRequestModel>(new LastInformationRequestModel { RequestModel = room.Serialize() });
+                                var nextForceTurns = latestinfo?.ExtraInfo?.ForceNextTurns;
+
+                                //Check has challenge or not if yes put it in next turn after current talker
+                                if (nextForceTurns != null && nextForceTurns.Count != 0)
+                                {
+                                    nextForceTurns.Reverse();
+                                    nextForceTurns.ForEach(f => state.TargetPlayers.Insert(idx + 1, f));
+                                    await grpcAdapter.Do(new MakeEmptyOfChallengeModel { AppId = room.AppId, RoomId = room.RoomId });
+                                }
+
+                                var jsonObj = latestinfo?.ToJsonNode();
                                 if (jsonObj != null)
                                 {
                                     jsonObj["remindTime"] = i;

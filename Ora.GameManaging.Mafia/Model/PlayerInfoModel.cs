@@ -22,6 +22,6 @@
         }
         public RoleStatusModel RoleStatus { get; set; } = default!;
         public int Status { get; set; }
-        public bool IsAlive => RoleStatus.Health > 0;
+        public bool IsAlive => RoleStatus?.Health > 0;
     }
 }

@@ -104,6 +104,9 @@ namespace Ora.GameManaging.Mafia.Infrastructure
 
             // Serialize the result to JSON
             string? resultJson = result != null ? JsonSerializer.Serialize(result, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }) : null;
+            if (resultJson == null)
+                return new AdapterReply(); // Return an empty
+
             return new AdapterReply { DataJson = resultJson };
         }
 

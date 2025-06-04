@@ -42,41 +42,43 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
                     rs.RoomId == targetPlayer.RoomId)
                 .ToListAsync();
 
-            var statusLookup = allRoleStatuses
-                .ToDictionary(
-                    rs => (rs.UserId, rs.RoleName),
-                    rs => rs
-                );
+            //var statusLookup = allRoleStatuses
+            //    .ToDictionary(
+            //        rs => (rs.UserId, rs.RoleName),
+            //        rs => rs
+            //    );
 
-            foreach (var player in model.Players)
-            {
-                var userIdPart = player.UserId.Split(':').Last();
-                if (statusLookup.TryGetValue((userIdPart, player.Role), out var statusEntity))
-                {
-                    player.RoleStatus = new RoleStatusModel
-                    {
-                        RoleName = statusEntity.RoleName,
-                        Health = statusEntity.Health,
-                        AbilityCount = statusEntity.AbilityCount,
-                        SelfAbilityCount = statusEntity.SelfAbilityCount,
-                        HasNightAbility = statusEntity.HasNightAbility,
-                        HasDayAbility = statusEntity.HasDayAbility,
-                        CanSpeak = statusEntity.CanSpeak,
-                        DarkSide = statusEntity.DarkSide,
-                        Abilities = statusEntity.Abilities
-                    };
-                }
-                else
-                {
-                    player.RoleStatus = null!;
-                }
-            }
+            //foreach (var player in model.Players)
+            //{
+            //    var userIdPart = player.UserId.Split(':').Last();
+            //    if (statusLookup.TryGetValue((userIdPart, player.Role), out var statusEntity))
+            //    {
+            //        player.RoleStatus = new RoleStatusModel
+            //        {
+            //            RoleName = statusEntity.RoleName,
+            //            Health = statusEntity.Health,
+            //            AbilityCount = statusEntity.AbilityCount,
+            //            SelfAbilityCount = statusEntity.SelfAbilityCount,
+            //            HasNightAbility = statusEntity.HasNightAbility,
+            //            HasDayAbility = statusEntity.HasDayAbility,
+            //            CanSpeak = statusEntity.CanSpeak,
+            //            DarkSide = statusEntity.DarkSide,
+            //            Abilities = statusEntity.Abilities,
+            //            Challenge = statusEntity.Challenge
+            //        };
+            //    }
+            //    else
+            //    {
+            //        player.RoleStatus = null!;
+            //    }
+            //}
 
             // Find the RoleStatus for the current turn player
             var lastPartUserId = model.CurrentTurnPlayerId.Split(":").Last();
             var roleStatusEntity = allRoleStatuses
                 .FirstOrDefault(rs => rs.UserId == lastPartUserId && rs.RoleName == targetPlayer.Role);
 
+            //Map to RoleStatusModel
             RoleStatusModel? roleStatus = null;
             if (roleStatusEntity is not null)
             {
@@ -90,7 +92,8 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
                     HasDayAbility = roleStatusEntity.HasDayAbility,
                     CanSpeak = roleStatusEntity.CanSpeak,
                     DarkSide = roleStatusEntity.DarkSide,
-                    Abilities = roleStatusEntity.Abilities
+                    Abilities = roleStatusEntity.Abilities,
+                    Challenge = roleStatusEntity.Challenge
                 };
             }
 
@@ -107,13 +110,17 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
             // Build the response model
             var response = new LatestInformationResponseModel
             {
-                Phase = phase,
-                Round = model.TurnDurationSeconds,
-                CanSpeak = roleStatus?.CanSpeak ?? false,
-                RoleStatus = roleStatus,
-                Abilities = [.. abilities.Select(a => a.Name)],
-                AlivePlayers = [.. model.Players.Where(w => w.IsAlive)],
-                DeadPlayers = [.. model.Players.Where(w => !w.IsAlive)]
+                Data = new LatestInformationDataResponseModel
+                {
+                    Phase = phase,
+                    Round = model.TurnDurationSeconds,
+                    CanSpeak = roleStatus?.CanSpeak ?? false,
+                    RoleStatus = roleStatus,
+                    Abilities = [.. abilities.Select(a => a.Name)],
+                    AlivePlayers = [.. model.Players.Where(w => w.IsAlive)],
+                    DeadPlayers = [.. model.Players.Where(w => !w.IsAlive)]
+                },
+                ExtraInfo = new ExtraInfoDetailsModel { ForceNextTurns = [.. allRoleStatuses.Where(rs => rs.Challenge).Select(s => $"{s.ApplicationInstanceId}:{s.UserId}")] }
             };
             //// Example: Assume the current role is Doctor
             //var roleActions = GetRoleActions(targetPlayer.Role, targetPlayer.RoomId);
@@ -130,6 +137,21 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
             //await Task.CompletedTask;
             //return new LatestInformationResponseModel();
             return response;
+        }
+
+        public async Task MakeEmptyOfChallengeAsync(string appId, string roomId)
+        {
+            // Fetch all role statuses for the specified application and room
+            var roleStatuses = await dbContext.RoleStatuses
+                .Where(rs => rs.ApplicationInstanceId == appId && rs.RoomId == roomId)
+                .ToListAsync();
+            // Update the Challenge property to an empty string for each role status
+            foreach (var status in roleStatuses)
+            {
+                status.Challenge = false;
+            }
+            // Save changes to the database
+            await dbContext.SaveChangesAsync();
         }
 
         public async Task ProcessedActions(string appId, string roomId)
