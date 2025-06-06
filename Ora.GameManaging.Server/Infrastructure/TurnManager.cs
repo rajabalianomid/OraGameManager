@@ -20,7 +20,7 @@ namespace Ora.GameManaging.Server.Infrastructure
             public CancellationTokenSource TokenSource { get; set; } = new();
             public bool IsPaused { get; set; }
             public int RemainingSeconds { get; set; }
-            public List<string> TargetPlayers { get; set; } = [];
+            public List<object> TargetPlayers { get; set; } = [];
         }
 
         private readonly ConcurrentDictionary<string, GroupTimerState> _groupTimers = new();
@@ -43,7 +43,7 @@ namespace Ora.GameManaging.Server.Infrastructure
         }
 
         // Rotating group timer, each player gets timer one after another
-        public void StartGroupTurnRotating(string roomId, List<string> userIds, int durationSeconds)
+        public void StartGroupTurnRotating(string roomId, List<object> userOrGroups, int durationSeconds)
         {
             Cancel(roomId);
 
@@ -52,7 +52,7 @@ namespace Ora.GameManaging.Server.Infrastructure
                 TokenSource = new CancellationTokenSource(),
                 IsPaused = false,
                 RemainingSeconds = durationSeconds,
-                TargetPlayers = userIds.ToList()
+                TargetPlayers = userOrGroups
             };
             _groupTimers[roomId] = state;
 
@@ -82,47 +82,77 @@ namespace Ora.GameManaging.Server.Infrastructure
         {
             try
             {
-                for (int i = state.RemainingSeconds; i >= 0; i--)
+                // Each item in TargetPlayers can be string (single) or List<string> (group)
+                for (int idx = 0; idx < state.TargetPlayers.Count; idx++)
                 {
-                    state.RemainingSeconds = i;
-
-                    while (state.IsPaused)
+                    List<string> userIds = state.TargetPlayers[idx] switch
                     {
-                        await Task.Delay(200, state.TokenSource.Token);
-                    }
+                        string single => [single],
+                        List<string> group => group,
+                        _ => []
+                    };
 
-                    List<string> currentConnectionIds = [];
+                    int seconds = state.RemainingSeconds;
+
                     if (GameManager.Rooms.TryGetValue(roomId, out var room))
                     {
-                        foreach (var userId in state.TargetPlayers)
+                        for (int i = seconds; i >= 0; i--)
                         {
-                            if (room.Players.TryGetValue(userId, out var player))
-                                currentConnectionIds.Add(player.ConnectionId);
+                            state.RemainingSeconds = i;
+
+                            while (state.IsPaused)
+                                await Task.Delay(200, state.TokenSource.Token);
+
+                            // Send per-player info (gRPC, TurnInfo, etc.)
+                            foreach (var userId in userIds)
+                            {
+                                if (room.Players.TryGetValue(userId, out var player))
+                                {
+                                    using var scope = serviceProvider.CreateScope();
+                                    var gameRoomService = scope.ServiceProvider.GetRequiredService<IGameRoomService>();
+                                    await gameRoomService.UpdateCurrentTurnAndSyncCacheAsync(room.AppId, roomId.Split(":").Last(), userId);
+
+                                    room.CurrentTurnPlayerId = userId;
+                                    var latestinfo = await grpcAdapter.Do<ThridPartInfo, LastInformationRequestModel>(
+                                        new LastInformationRequestModel { RequestModel = room.Serialize() });
+
+                                    var jsonObj = latestinfo?.ToJsonNode();
+                                    if (jsonObj != null)
+                                    {
+                                        jsonObj["remindTime"] = i;
+                                        await hubContext.Clients.Client(player.ConnectionId).SendAsync("TurnInfo", jsonObj);
+                                    }
+                                }
+                            }
+
+                            // Timeout for all in this group
+                            if (i == 0)
+                            {
+                                var connectionIds = userIds
+                                    .Select(uid => room.Players.TryGetValue(uid, out var p) ? p.ConnectionId : null)
+                                    .Where(cid => cid != null)
+                                    .Cast<string>()
+                                    .ToList();
+                                await hubContext.Clients.Clients(connectionIds).SendAsync("TurnTimeout", userIds);
+                            }
+                            else
+                            {
+                                await Task.Delay(1000, state.TokenSource.Token);
+                            }
                         }
                     }
 
-                    // Broadcast timer tick ONLY to target players (not whole group)
-                    await hubContext.Clients.Clients(currentConnectionIds).SendAsync("TimerTick", i);
-
-                    if (i == 0)
-                    {
-                        // Timeout ONLY to target players
-                        await hubContext.Clients.Clients(currentConnectionIds).SendAsync("TurnTimeout", state.TargetPlayers);
-                        Cancel(roomId); // Clean up after finish
-                    }
-                    else
-                    {
-                        await Task.Delay(1000, state.TokenSource.Token);
-                    }
+                    // Reset for the next group
+                    state.RemainingSeconds = seconds;
                 }
+
+                _turnFinishedCallback?.Invoke(roomId);
+                Cancel(roomId);
             }
-            catch (OperationCanceledException)
-            {
-                // Timer canceled
-            }
+            catch (OperationCanceledException) { }
             catch (Exception ex)
             {
-                Console.WriteLine($"[TurnManager] Error in simultaneous timer: {ex.Message}");
+                Console.WriteLine($"[TurnManager] Error in simultaneous/group timer: {ex.Message}");
             }
         }
 
@@ -133,84 +163,85 @@ namespace Ora.GameManaging.Server.Infrastructure
             {
                 for (int idx = 0; idx < state.TargetPlayers.Count; idx++)
                 {
-                    var userId = state.TargetPlayers[idx];
+                    // Support both single and group
+                    List<string> userIds = state.TargetPlayers[idx] switch
+                    {
+                        string single => [single],
+                        List<string> group => group,
+                        _ => []
+                    };
+
                     int seconds = state.RemainingSeconds;
-                    string? currentConnectionId = null;
-                    if (GameManager.Rooms.TryGetValue(roomId, out var room) &&
-                        room.Players.TryGetValue(userId, out var player))
+
+                    if (GameManager.Rooms.TryGetValue(roomId, out var room))
                     {
-                        using var scope = serviceProvider.CreateScope();
-                        var gameRoomService = scope.ServiceProvider.GetRequiredService<IGameRoomService>();
-                        await gameRoomService.UpdateCurrentTurnAndSyncCacheAsync(room.AppId, roomId.Split(":").Last(), userId); // Ensure current turn is set
-                        currentConnectionId = player.ConnectionId;
-                    }
-
-                    for (int i = seconds; i >= 0; i--)
-                    {
-                        state.RemainingSeconds = i;
-
-                        while (state.IsPaused)
+                        for (int i = seconds; i >= 0; i--)
                         {
-                            await Task.Delay(200, state.TokenSource.Token);
-                        }
+                            state.RemainingSeconds = i;
 
-                        if (!string.IsNullOrEmpty(currentConnectionId))
-                        {
-                            // Ensure `room` is not null before using it
-                            if (room != null)
+                            while (state.IsPaused)
+                                await Task.Delay(200, state.TokenSource.Token);
+
+                            var tasks = userIds.Select(async userId =>
                             {
-                                room.CurrentTurnPlayerId = userId;
-                                var latestinfo = await grpcAdapter.Do<ThridPartInfo, LastInformationRequestModel>(new LastInformationRequestModel { RequestModel = room.Serialize() });
-                                var nextForceTurns = latestinfo?.ExtraInfo?.ForceNextTurns;
-
-                                //Check has challenge or not if yes put it in next turn after current talker
-                                if (nextForceTurns != null && nextForceTurns.Count != 0)
+                                if (room.Players.TryGetValue(userId, out var player))
                                 {
-                                    nextForceTurns.Reverse();
-                                    nextForceTurns.ForEach(f => state.TargetPlayers.Insert(idx + 1, f));
-                                    await grpcAdapter.Do(new MakeEmptyOfChallengeModel { AppId = room.AppId, RoomId = room.RoomId });
-                                }
+                                    using var scope = serviceProvider.CreateScope();
+                                    var gameRoomService = scope.ServiceProvider.GetRequiredService<IGameRoomService>();
+                                    await gameRoomService.UpdateCurrentTurnAndSyncCacheAsync(room.AppId, roomId.Split(":").Last(), userId);
 
-                                var jsonObj = latestinfo?.ToJsonNode();
-                                if (jsonObj != null)
-                                {
-                                    jsonObj["remindTime"] = i;
-                                    var modifiedJson = jsonObj.ToJsonSerialize();
+                                    room.CurrentTurnPlayerId = userId;
+                                    var latestinfo = await grpcAdapter.Do<ThridPartInfo, LastInformationRequestModel>(
+                                        new LastInformationRequestModel { RequestModel = room.Serialize() });
+                                    var nextForceTurns = latestinfo?.ExtraInfo?.ForceNextTurns;
 
-                                    await hubContext.Clients.Client(currentConnectionId).SendAsync("TurnInfo", jsonObj);
+                                    // Only for single turns, handle nextForceTurns
+                                    if (userIds.Count == 1 && nextForceTurns != null && nextForceTurns.Count != 0)
+                                    {
+                                        nextForceTurns.Reverse();
+                                        foreach (var f in nextForceTurns)
+                                            state.TargetPlayers.Insert(idx + 1, f);
+                                        await grpcAdapter.Do(new MakeEmptyOfChallengeModel { AppId = room.AppId, RoomId = room.RoomId });
+                                    }
+
+                                    var jsonObj = latestinfo?.ToJsonNode();
+                                    if (jsonObj != null)
+                                    {
+                                        jsonObj["remindTime"] = i;
+                                        await hubContext.Clients.Client(player.ConnectionId).SendAsync("TurnInfo", jsonObj);
+                                    }
                                 }
-                                // Send timer tick only to the current player
-                                //await hubContext.Clients.Client(currentConnectionId).SendAsync("TimerTick", i);
-                                //await hubContext.Clients.Client(currentConnectionId).SendAsync("TurnInfo", latestinfo);
+                            });
+                            await Task.WhenAll(tasks);
+
+                            // Timeout for all in this turn
+                            if (i == 0)
+                            {
+                                var connectionIds = userIds
+                                    .Select(uid => room.Players.TryGetValue(uid, out var p) ? p.ConnectionId : null)
+                                    .Where(cid => cid != null)
+                                    .Cast<string>()
+                                    .ToList();
+                                await hubContext.Clients.Clients(connectionIds).SendAsync("TurnTimeout", userIds);
+                            }
+                            else
+                            {
+                                await Task.Delay(1000, state.TokenSource.Token);
                             }
                         }
-
-                        if (i == 0)
-                        {
-                            if (!string.IsNullOrEmpty(currentConnectionId))
-                                await hubContext.Clients.Client(currentConnectionId).SendAsync("TurnTimeout");
-                            // Next player automatically
-                        }
-                        else
-                        {
-                            await Task.Delay(1000, state.TokenSource.Token);
-                        }
                     }
-                    // Reset for the next player (if you want fresh timer for each player)
+
+                    // Reset for the next player/group
                     state.RemainingSeconds = seconds;
                 }
-                // Notify GameManager that the rotating turn is finished
-                _turnFinishedCallback?.Invoke(roomId);
 
-                Cancel(roomId); // Clean up after all players finished
+                _turnFinishedCallback?.Invoke(roomId);
+                Cancel(roomId);
             }
-            catch (OperationCanceledException)
-            {
-                // Timer canceled
-            }
+            catch (OperationCanceledException) { }
             catch (Exception ex)
             {
-                Console.WriteLine($"[TurnManager] Error in rotating timer: {ex.Message}");
+                Console.WriteLine($"[TurnManager] Error in rotating/group timer: {ex.Message}");
             }
         }
 

@@ -62,7 +62,7 @@ namespace Ora.GameManaging.Server.Infrastructure
                 var dbRoom = await roomRepo.GetByRoomIdAsync(room.AppId, room.RoomId);
                 if (dbRoom != null && dbRoom.IsGameStarted && !IsGameOver(room))
                 {
-                    StartGameLoop(room.AppId, room.RoomId, room);
+                    StartGameLoop(room.AppId, room.RoomId, room, skipFirstPhaseChange: true);
                 }
             }
         }
@@ -109,13 +109,13 @@ namespace Ora.GameManaging.Server.Infrastructure
             );
 
             // Start the game loop for this room
-            StartGameLoop(appId, roomId, room);
+            StartGameLoop(appId, roomId, room, skipFirstPhaseChange: true);
         }
 
         /// <summary>
         /// Main game loop for a room. Runs until the game is over or cancelled.
         /// </summary>
-        private void StartGameLoop(string appId, string roomId, GameRoom room)
+        private void StartGameLoop(string appId, string roomId, GameRoom room, bool skipFirstPhaseChange = false)
         {
             var key = $"{appId}:{roomId}";
             // Prevent duplicate loops for the same room
@@ -129,6 +129,7 @@ namespace Ora.GameManaging.Server.Infrastructure
             {
                 try
                 {
+                    bool isFirstLoop = true;
                     while (!cts.Token.IsCancellationRequested)
                     {
                         // Check if the game is over
@@ -144,7 +145,12 @@ namespace Ora.GameManaging.Server.Infrastructure
                         // Start rotating turn for this queue
                         _turnManager.StartGroupTurnRotating(key, rotatingQueue, room.TurnDurationSeconds);
 
+                        if (!(skipFirstPhaseChange && isFirstLoop))
+                        {
+                            await GoToNextGamePhase(room);
+                        }
 
+                        isFirstLoop = false;
 
                         // Wait for the turn to finish (implement a mechanism or event to know when to continue)
                         await WaitForTurnToFinishAsync(key, cts.Token);
@@ -162,12 +168,33 @@ namespace Ora.GameManaging.Server.Infrastructure
         }
 
         // Example: Build your custom queue based on your game logic
-        private async Task<List<string>> BuildCustomPlayerQueue(GameRoom room)
+        private async Task<List<object>> BuildCustomPlayerQueue(GameRoom room)
         {
             var result = await _grpcAdapter.Do<object, TurnModel>(new TurnModel { ApplicationInstanceId = room.AppId, RoomId = room.RoomId });
+
+            // Handle both JsonElement and JsonArray (for flexibility)
             if (result is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.Array)
             {
-                return [.. jsonElement.EnumerateArray().Select(e => e.GetString() ?? string.Empty)];
+                var queue = new List<object>();
+                foreach (var item in jsonElement.EnumerateArray())
+                {
+                    if (item.ValueKind == JsonValueKind.String)
+                    {
+                        queue.Add(item.GetString() ?? string.Empty);
+                    }
+                    else if (item.ValueKind == JsonValueKind.Array)
+                    {
+                        var group = item.EnumerateArray()
+                                        .Where(e => e.ValueKind == JsonValueKind.String)
+                                        .Select(e => e.GetString() ?? string.Empty)
+                                        .ToList();
+                        if (group.Count == 1)
+                            queue.Add(group[0]);
+                        else if (group.Count > 1)
+                            queue.Add(group);
+                    }
+                }
+                return queue;
             }
             return [];
         }
@@ -234,30 +261,16 @@ namespace Ora.GameManaging.Server.Infrastructure
                 cts.Cancel();
         }
 
-        // Add this method to GameManager to allow dynamic change of rotating order during a round
-        public async Task ChangeRotatingOrderAndRestartAsync(string appId, string roomId, List<string> newOrder, int? durationSeconds = null)
+        public async Task<string> GoToNextGamePhase(GameRoom room)
         {
-            var key = $"{appId}:{roomId}";
-
-            // 1. Cancel the current rotating turn (if any)
-            _turnManager.Cancel(key);
-
-
-            // 3. Start a new rotating turn with the new order
-            if (!Rooms.TryGetValue(key, out var room))
-                return;
-
-            int duration = durationSeconds ?? room.TurnDurationSeconds;
-            _turnManager.StartGroupTurnRotating(key, newOrder, duration);
-
-            // 4. Optionally notify players about the new order/turn
-            await _notification.SendTurnChangedToPlayers(
-                newOrder.Select(id => room.Players[id].ConnectionId).ToList(),
-                room,
-                "Turn order updated due to challenge!"
-            );
+            var result = await _grpcAdapter.Do<NextPhaseResponseModel, NextPhaseModel>(new NextPhaseModel { currentPhase = room.Phase });
+            using var scope = _serviceProvider.CreateScope();
+            var roomRepo = scope.ServiceProvider.GetRequiredService<GameRoomRepository>();
+            var foundRoom = await roomRepo.UpdatePhaseAsync(room.AppId, room.RoomId, result.Name, result.IsLastPhase);
+            room.CurrentTurnPlayerId = foundRoom.CurrentTurnPlayer;
+            room.Phase = foundRoom.Phase;
+            room.Round = foundRoom.Round;
+            return result.Name;
         }
-
-        
     }
 }

@@ -11,6 +11,7 @@ namespace Ora.GameManaging.Mafia.Data
         public DbSet<GeneralAttributeEntity> GeneralAttributes { get; set; }
         public DbSet<RoleStatusEntity> RoleStatuses { get; set; }
         public DbSet<GameActionHistoryEntity> GameActionHistories { get; set; }
+        public DbSet<AbilityEntity> AbilityEntities { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {

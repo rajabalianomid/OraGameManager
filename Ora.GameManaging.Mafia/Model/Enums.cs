@@ -10,4 +10,9 @@
         MafiaTalk = 5,
         Action = 6,
     }
+    public enum AbilityTypes
+
+    {
+        Report = 1,
+    }
 }

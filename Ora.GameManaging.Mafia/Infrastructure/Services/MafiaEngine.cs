@@ -2,28 +2,15 @@
 using Microsoft.CodeAnalysis.Scripting;
 using Microsoft.EntityFrameworkCore;
 using Ora.GameManaging.Mafia.Data;
+using Ora.GameManaging.Mafia.Infrastructure.Services.Phases;
 using Ora.GameManaging.Mafia.Model;
 using Ora.GameManaging.Mafia.Model.Mapping;
 using System.Text.Json;
 
 namespace Ora.GameManaging.Mafia.Infrastructure.Services
 {
-    public class MafiaEngine(MafiaDbContext dbContext)
+    public class MafiaEngine(MafiaDbContext dbContext, PhaseServiceFactory phaseServiceFactory)
     {
-        // This method should fetch role actions from the database or any data source
-        private List<RoleActionModel> GetRoleActions(string roleName, string roomId)
-        {
-            var expression = dbContext.GeneralAttributes
-                                .Where(ga =>
-                                    ga.EntityName == EntityKeys.GameRoom &&
-                                    ga.Key == $"{roleName}_Expression" &&
-                                    ga.EntityId == roomId)
-                                .Select(ga => ga.Value)
-                                .FirstOrDefault() ?? string.Empty;
-
-            return [new RoleActionModel { RoleName = roleName, Expression = expression }];
-        }
-
         public async Task<LatestInformationResponseModel> PrepareLatestInformationAsync(string requestModel)
         {
             // Deserialize the request model from JSON
@@ -107,6 +94,9 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
                 .Where(a => abilityNames.Contains(a.Name) && a.RelatedPhase == phase)
                 .ToListAsync();
 
+            var phaseService = phaseServiceFactory.GetPhaseService(phase);
+            await phaseService.Prepare(model.AppId, model.RoomId, phase);
+
             // Build the response model
             var response = new LatestInformationResponseModel
             {
@@ -122,20 +112,7 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
                 },
                 ExtraInfo = new ExtraInfoDetailsModel { ForceNextTurns = [.. allRoleStatuses.Where(rs => rs.Challenge).Select(s => $"{s.ApplicationInstanceId}:{s.UserId}")] }
             };
-            //// Example: Assume the current role is Doctor
-            //var roleActions = GetRoleActions(targetPlayer.Role, targetPlayer.RoomId);
-            //foreach (var action in roleActions)
-            //{
-            //    var globals = new ScriptGlobals { target = targetPlayer };
 
-            //    await CSharpScript.EvaluateAsync(
-            //        action.Expression, ScriptOptions.Default.AddReferences(typeof(PlayerInfoModel).Assembly).AddImports("System"),
-            //        globals);
-            //}
-
-            //// At this point, targetPlayer.Health is updated if the action was executed
-            //await Task.CompletedTask;
-            //return new LatestInformationResponseModel();
             return response;
         }
 
@@ -214,6 +191,16 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
             if (killCount == 1)
                 return "There was 1 kill last night.";
             return $"There were {killCount} kills last night.";
+        }
+
+        public NextPhaseModel GetNextPhase(string currentPhase)
+        {
+            var isLastPhase = ((PhaseStatus)Enum.GetValues<PhaseStatus>().Length - 1).ToString() == currentPhase;
+            if (!Enum.TryParse<PhaseStatus>(currentPhase, out var phase))
+                return new NextPhaseModel { Name = PhaseStatus.Lobby.ToString(), IsLastPhase = isLastPhase };
+
+            int next = ((int)phase + 1) % Enum.GetValues<PhaseStatus>().Length;
+            return new NextPhaseModel { Name = ((PhaseStatus)next).ToString(), IsLastPhase = isLastPhase };
         }
     }
 }

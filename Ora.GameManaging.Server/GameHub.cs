@@ -347,9 +347,24 @@ namespace Ora.GameManaging.Server
         public async Task StartGroupTurnRotating(string appId, string roomId, string? rolesOrConnectionIds)
         {
             var key = $"{appId}:{roomId}";
+            // Example: You can build your own grouping logic here.
+            // For now, treat all as singles (old behavior):
             var userIds = GetTargetPlayerConnectionIds(appId, roomId, rolesOrConnectionIds);
+
+            // Example: If you want to group every 2 players together:
+            var userOrGroups = new List<object>();
+            int groupSize = 2; // Change as needed
+            for (int i = 0; i < userIds.Count; i += groupSize)
+            {
+                var group = userIds.Skip(i).Take(groupSize).ToList();
+                if (group.Count == 1)
+                    userOrGroups.Add(group[0]); // single
+                else
+                    userOrGroups.Add(group);    // group
+            }
+
             int duration = 30; // Or dynamic as per room settings
-            turnManager.StartGroupTurnRotating(key, userIds, duration);
+            turnManager.StartGroupTurnRotating(key, userOrGroups, duration);
             await Clients.Group(key).SendAsync("TurnChanged", "Group turn started (rotating)");
         }
 
