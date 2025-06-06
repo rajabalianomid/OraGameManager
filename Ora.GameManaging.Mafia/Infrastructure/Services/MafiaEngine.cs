@@ -1,10 +1,7 @@
-﻿using Microsoft.CodeAnalysis.CSharp.Scripting;
-using Microsoft.CodeAnalysis.Scripting;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Ora.GameManaging.Mafia.Data;
 using Ora.GameManaging.Mafia.Infrastructure.Services.Phases;
 using Ora.GameManaging.Mafia.Model;
-using Ora.GameManaging.Mafia.Model.Mapping;
 using System.Text.Json;
 
 namespace Ora.GameManaging.Mafia.Infrastructure.Services
@@ -29,36 +26,38 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
                     rs.RoomId == targetPlayer.RoomId)
                 .ToListAsync();
 
-            //var statusLookup = allRoleStatuses
-            //    .ToDictionary(
-            //        rs => (rs.UserId, rs.RoleName),
-            //        rs => rs
-            //    );
 
-            //foreach (var player in model.Players)
-            //{
-            //    var userIdPart = player.UserId.Split(':').Last();
-            //    if (statusLookup.TryGetValue((userIdPart, player.Role), out var statusEntity))
-            //    {
-            //        player.RoleStatus = new RoleStatusModel
-            //        {
-            //            RoleName = statusEntity.RoleName,
-            //            Health = statusEntity.Health,
-            //            AbilityCount = statusEntity.AbilityCount,
-            //            SelfAbilityCount = statusEntity.SelfAbilityCount,
-            //            HasNightAbility = statusEntity.HasNightAbility,
-            //            HasDayAbility = statusEntity.HasDayAbility,
-            //            CanSpeak = statusEntity.CanSpeak,
-            //            DarkSide = statusEntity.DarkSide,
-            //            Abilities = statusEntity.Abilities,
-            //            Challenge = statusEntity.Challenge
-            //        };
-            //    }
-            //    else
-            //    {
-            //        player.RoleStatus = null!;
-            //    }
-            //}
+            //This Part is for filling the RoleStatus from Mafia rolestatuse table for each player that is comming from the request model
+            var statusLookup = allRoleStatuses
+                .ToDictionary(
+                    rs => (rs.UserId, rs.RoleName),
+                    rs => rs
+                );
+
+            foreach (var player in model.Players)
+            {
+                var userIdPart = player.UserId.Split(':').Last();
+                if (statusLookup.TryGetValue((userIdPart, player.Role), out var statusEntity))
+                {
+                    player.RoleStatus = new RoleStatusModel
+                    {
+                        RoleName = statusEntity.RoleName,
+                        Health = statusEntity.Health,
+                        AbilityCount = statusEntity.AbilityCount,
+                        SelfAbilityCount = statusEntity.SelfAbilityCount,
+                        HasNightAbility = statusEntity.HasNightAbility,
+                        HasDayAbility = statusEntity.HasDayAbility,
+                        CanSpeak = statusEntity.CanSpeak,
+                        DarkSide = statusEntity.DarkSide,
+                        Abilities = statusEntity.Abilities,
+                        Challenge = statusEntity.Challenge
+                    };
+                }
+                else
+                {
+                    player.RoleStatus = null!;
+                }
+            }
 
             // Find the RoleStatus for the current turn player
             var lastPartUserId = model.CurrentTurnPlayerId.Split(":").Last();
