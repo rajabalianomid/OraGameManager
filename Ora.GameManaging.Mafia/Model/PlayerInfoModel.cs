@@ -1,12 +1,7 @@
 ﻿namespace Ora.GameManaging.Mafia.Model
 {
-    public class PlayerInfoModel
+    public class PlayerInfoModel : BasePlayerInfo
     {
-        public string ConnectionId { get; set; } = string.Empty;
-        public string UserId { get; set; } = string.Empty;
-        public string RoomId { get; set; } = string.Empty;
-        public string Name { get; set; } = string.Empty;
-
         private string _role = string.Empty;
         public string Role
         {

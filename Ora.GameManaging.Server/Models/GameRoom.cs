@@ -18,17 +18,18 @@ namespace Ora.GameManaging.Server.Models
         public string Phase { get; set; } = "Lobey";
         public float Round { get; set; }
 
-        public string Serialize()
+        public string Serialize(string? targetPlayerId = null, bool isYourTurn = false)
         {
             return new
             {
                 AppId,
                 RoomId,
-                CurrentTurnPlayerId,
+                TargetPlayerId = targetPlayerId ?? CurrentTurnPlayerId,
                 Players = Players.Values.Select(p => new { p.ConnectionId, p.UserId, p.Name, p.Role, p.Status, RoomId }),
                 TurnDurationSeconds,
                 Phase,
-                Round
+                Round,
+                IsYourTurn = isYourTurn
             }.ToJsonSerialize();
         }
     }

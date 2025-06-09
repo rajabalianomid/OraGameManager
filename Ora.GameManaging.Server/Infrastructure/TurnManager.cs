@@ -1,11 +1,14 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using Ora.GameManaging.Server.Data;
+using Ora.GameManaging.Server.Data.Migrations;
 using Ora.GameManaging.Server.Data.Repositories;
 using Ora.GameManaging.Server.Infrastructure.Proxy;
 using Ora.GameManaging.Server.Infrastructure.Services;
 using Ora.GameManaging.Server.Models;
 using Ora.GameManaging.Server.Models.Adapter;
 using System.Collections.Concurrent;
+using System.Numerics;
+using System.Text.Json;
 
 namespace Ora.GameManaging.Server.Infrastructure
 {
@@ -175,6 +178,9 @@ namespace Ora.GameManaging.Server.Infrastructure
 
                     if (GameManager.Rooms.TryGetValue(roomId, out var room))
                     {
+                        // Track users to move to notInCurrentTurn
+                        var usersToMove = new List<string>();
+
                         for (int i = seconds; i >= 0; i--)
                         {
                             state.RemainingSeconds = i;
@@ -182,37 +188,43 @@ namespace Ora.GameManaging.Server.Infrastructure
                             while (state.IsPaused)
                                 await Task.Delay(200, state.TokenSource.Token);
 
-                            var tasks = userIds.Select(async userId =>
-                            {
-                                if (room.Players.TryGetValue(userId, out var player))
+                            var tasks = userIds
+                                .Select(async userId =>
                                 {
-                                    using var scope = serviceProvider.CreateScope();
-                                    var gameRoomService = scope.ServiceProvider.GetRequiredService<IGameRoomService>();
-                                    await gameRoomService.UpdateCurrentTurnAndSyncCacheAsync(room.AppId, roomId.Split(":").Last(), userId);
-
-                                    room.CurrentTurnPlayerId = userId;
-                                    var latestinfo = await grpcAdapter.Do<ThridPartInfo, LastInformationRequestModel>(
-                                        new LastInformationRequestModel { RequestModel = room.Serialize() });
-                                    var nextForceTurns = latestinfo?.ExtraInfo?.ForceNextTurns;
-
-                                    // Only for single turns, handle nextForceTurns
-                                    if (userIds.Count == 1 && nextForceTurns != null && nextForceTurns.Count != 0)
+                                    var result = await HandlePlayerTurnInfoAsync(room, state, userIds, idx, i, userId, true);
+                                    if (!result.IsAlive || !result.Success)
                                     {
-                                        nextForceTurns.Reverse();
-                                        foreach (var f in nextForceTurns)
-                                            state.TargetPlayers.Insert(idx + 1, f);
-                                        await grpcAdapter.Do(new MakeEmptyOfChallengeModel { AppId = room.AppId, RoomId = room.RoomId });
+                                        usersToMove.Add(userId);
                                     }
+                                    return result;
+                                }).ToList();
 
-                                    var jsonObj = latestinfo?.ToJsonNode();
-                                    if (jsonObj != null)
-                                    {
-                                        jsonObj["remindTime"] = i;
-                                        await hubContext.Clients.Client(player.ConnectionId).SendAsync("TurnInfo", jsonObj);
-                                    }
-                                }
-                            });
                             await Task.WhenAll(tasks);
+
+                            // Flatten state.TargetPlayers to a list of user IDs (strings)
+                            var allTargetUserIds = state.TargetPlayers
+                                .SelectMany(tp => tp is string s ? [s] : tp is List<string> list ? list : Enumerable.Empty<string>())
+                                .ToList();
+                            var notInCurrentTurn = allTargetUserIds.Except(userIds).ToList();
+
+                            // Move users with IsAlive == false or Success == false to notInCurrentTurn for next tick
+                            if (usersToMove.Count > 0)
+                            {
+                                userIds = [.. userIds.Except(usersToMove)];
+                                notInCurrentTurn.AddRange(usersToMove);
+                                usersToMove.Clear();
+                            }
+
+                            // If no users alive in this turn, break
+                            if (userIds.Count == 0)
+                                break;
+
+                            var tasksnotInCurrentTurn = notInCurrentTurn
+                                .Select(userId => HandlePlayerTurnInfoAsync(room, state, userIds, idx, i, userId, false))
+                                .ToList();
+
+                            await Task.WhenAll(tasksnotInCurrentTurn);
+
 
                             // Timeout for all in this turn
                             if (i == 0)
@@ -231,6 +243,8 @@ namespace Ora.GameManaging.Server.Infrastructure
                         }
                     }
 
+
+
                     // Reset for the next player/group
                     state.RemainingSeconds = seconds;
                 }
@@ -242,7 +256,69 @@ namespace Ora.GameManaging.Server.Infrastructure
             catch (Exception ex)
             {
                 Console.WriteLine($"[TurnManager] Error in rotating/group timer: {ex.Message}");
+
+                if (ex is AggregateException aggEx)
+                {
+                    foreach (var inner in aggEx.InnerExceptions)
+                        Console.WriteLine(inner);
+                }
             }
+        }
+
+        // Helper to handle player turn info
+        private async Task<HandlePlayerTurnInfoModel> HandlePlayerTurnInfoAsync(GameRoom room, GroupTimerState state, List<string> userIds, int idx, int i, string userId, bool isYourTurn)
+        {
+            var result = new HandlePlayerTurnInfoModel() { Success = true };
+
+            if (!room.Players.TryGetValue(userId, out var player))
+            {
+                result.Messages.Add($"Player {userId} not found in room {room.RoomId}.");
+                result.Success = false;
+                return result;
+            }
+
+            var latestinfo = await grpcAdapter.Do<ThridPartInfo, LastInformationRequestModel>(
+                new LastInformationRequestModel { RequestModel = room.Serialize(userId, isYourTurn) });
+
+            if (latestinfo?.Data?.ToString() is string jsonData)
+            {
+                var baseUserInfo = JsonSerializer.Deserialize<BaseUserModel>(jsonData, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                result.IsAlive = baseUserInfo?.IsAlive ?? false;
+                if (isYourTurn && !result.IsAlive)
+                {
+                    return result;
+                }
+            }
+
+            var nextForceTurns = latestinfo?.ExtraInfo?.ForceNextTurns;
+
+            if (isYourTurn)
+            {
+                using var scope = serviceProvider.CreateScope();
+                var gameRoomService = scope.ServiceProvider.GetRequiredService<IGameRoomService>();
+                await gameRoomService.UpdateCurrentTurnAndSyncCacheAsync(room.AppId, room.RoomId.Split(":").Last(), userId);
+
+                room.CurrentTurnPlayerId = userId;
+            }
+
+            // Only for single turns, handle nextForceTurns
+            if (userIds.Count == 1 && nextForceTurns != null && nextForceTurns.Count != 0)
+            {
+                nextForceTurns.Reverse();
+                foreach (var f in nextForceTurns)
+                    state.TargetPlayers.Insert(idx + 1, f);
+                await grpcAdapter.Do(new MakeEmptyOfChallengeModel { AppId = room.AppId, RoomId = room.RoomId });
+            }
+
+            var jsonObj = new { latestinfo?.Data, ExtraInfo = latestinfo?.ExtraInfo?.ForceNextTurns }?.ToJsonNode();
+            if (jsonObj != null)
+            {
+                jsonObj["remindTime"] = i;
+                jsonObj["isYourTurn"] = isYourTurn;
+                await hubContext.Clients.Client(player.ConnectionId).SendAsync("TurnInfo", jsonObj);
+            }
+            return result;
         }
 
         public void RegisterTurnFinishedCallback(Action<string> callback)

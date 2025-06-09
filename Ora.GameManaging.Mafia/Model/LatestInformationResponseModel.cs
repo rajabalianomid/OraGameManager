@@ -8,12 +8,23 @@ namespace Ora.GameManaging.Mafia.Model
     }
     public class LatestInformationDataResponseModel
     {
+        public string UserId { get; set; } = default!;
         public string? Phase { get; internal set; }
         public int Round { get; internal set; }
-        public bool CanSpeak { get; internal set; }
+
+        private RoleStatusModel? _roleStatus;
+        public RoleStatusModel? RoleStatus
+        {
+            get => _roleStatus;
+            internal set
+            {
+                _roleStatus = value;
+                IsAlive = _roleStatus?.Health > 0;
+            }
+        }
+        public bool IsAlive { get; private set; }
         public List<string>? Abilities { get; internal set; }
-        public RoleStatusModel? RoleStatus { get; internal set; }
-        public List<PlayerInfoModel> AlivePlayers { get; set; } = [];
-        public List<PlayerInfoModel> DeadPlayers { get; set; } = [];
+        public List<BasePlayerInfo> AlivePlayers { get; set; } = [];
+        public List<BasePlayerInfo> DeadPlayers { get; set; } = [];
     }
 }

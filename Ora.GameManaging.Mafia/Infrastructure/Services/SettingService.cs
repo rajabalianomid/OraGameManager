@@ -79,21 +79,25 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
                             Value = a.Value
                         }).ToList();
 
-                    var roleStatus = new RoleStatusEntity
+
+
+                    if (!dbContext.RoleStatuses.Any(w => w.UserId == userId && w.RoomId == roomId && w.ApplicationInstanceId == applicationInstanceId))
                     {
-                        ApplicationInstanceId = applicationInstanceId,
-                        RoomId = roomId,
-                        UserId = userId,
-                        RoleName = role,
-                        Abilities = string.Empty, // Initialize with empty abilities
-                        Turn = maxTurn + 2, // Increment turn for the new role
-                        LastUpdated = DateTime.UtcNow
-                    };
+                        var roleStatus = new RoleStatusEntity
+                        {
+                            ApplicationInstanceId = applicationInstanceId,
+                            RoomId = roomId,
+                            UserId = userId,
+                            RoleName = role,
+                            Abilities = string.Empty, // Initialize with empty abilities
+                            Turn = maxTurn + 2, // Increment turn for the new role
+                            LastUpdated = DateTime.UtcNow
+                        };
 
-                    AttributeReflectionHelper.ApplyAttributesToModel(roleStatus, roleAttributes);
-
-                    dbContext.RoleStatuses.Add(roleStatus);
-                    await dbContext.SaveChangesAsync(cancellationToken);
+                        AttributeReflectionHelper.ApplyAttributesToModel(roleStatus, roleAttributes);
+                        dbContext.RoleStatuses.Add(roleStatus);
+                        await dbContext.SaveChangesAsync(cancellationToken);
+                    }
 
                     return role;
                 }

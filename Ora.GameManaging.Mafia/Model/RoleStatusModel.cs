@@ -29,5 +29,19 @@ namespace Ora.GameManaging.Mafia.Model
             Challenge = entity.Challenge;
             Abilities = entity.Abilities;
         }
+
+        public void MakeEmpty()
+        {
+            RoleName = string.Empty;
+            Health = 0;
+            AbilityCount = 0;
+            SelfAbilityCount = 0;
+            HasNightAbility = false;
+            HasDayAbility = false;
+            CanSpeak = false;
+            DarkSide = false;
+            Challenge = false;
+            Abilities = string.Empty;
+        }
     }
 }

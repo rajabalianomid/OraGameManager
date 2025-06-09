@@ -1,7 +1,10 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.CodeAnalysis.CSharp.Scripting;
+using Microsoft.CodeAnalysis.Scripting;
+using Microsoft.EntityFrameworkCore;
 using Ora.GameManaging.Mafia.Data;
 using Ora.GameManaging.Mafia.Infrastructure.Services.Phases;
 using Ora.GameManaging.Mafia.Model;
+using Ora.GameManaging.Mafia.Model.Mapping;
 using System.Text.Json;
 
 namespace Ora.GameManaging.Mafia.Infrastructure.Services
@@ -15,8 +18,8 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
                 ?? throw new ArgumentNullException(nameof(requestModel), "Request model cannot be null");
 
             // Find the current turn player
-            var targetPlayer = model.Players.FirstOrDefault(w => w.UserId == model.CurrentTurnPlayerId)
-                ?? throw new ArgumentException($"Player with UserId {model.CurrentTurnPlayerId} not found in the request model.", nameof(requestModel));
+            var targetPlayer = model.Players.FirstOrDefault(w => w.UserId == model.TargetPlayerId)
+                ?? throw new ArgumentException($"Player with UserId {model.TargetPlayerId} not found in the request model.", nameof(requestModel));
 
             // Get all role statuses for this room and application
             var allRoleStatuses = await dbContext.RoleStatuses
@@ -60,7 +63,7 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
             }
 
             // Find the RoleStatus for the current turn player
-            var lastPartUserId = model.CurrentTurnPlayerId.Split(":").Last();
+            var lastPartUserId = model.TargetPlayerId.Split(":").Last();
             var roleStatusEntity = allRoleStatuses
                 .FirstOrDefault(rs => rs.UserId == lastPartUserId && rs.RoleName == targetPlayer.Role);
 
@@ -101,15 +104,18 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
             {
                 Data = new LatestInformationDataResponseModel
                 {
+                    UserId = model.TargetPlayerId,
                     Phase = phase,
-                    Round = model.TurnDurationSeconds,
-                    CanSpeak = roleStatus?.CanSpeak ?? false,
+                    Round = model.Round,
                     RoleStatus = roleStatus,
-                    Abilities = [.. abilities.Select(a => a.Name)],
-                    AlivePlayers = [.. model.Players.Where(w => w.IsAlive)],
-                    DeadPlayers = [.. model.Players.Where(w => !w.IsAlive)]
+                    Abilities = model.IsYourTurn ? [.. abilities.Select(a => a.Name)] : [],
+                    AlivePlayers = [.. model.Players.Where(w => w.IsAlive).Select(s => (BasePlayerInfo)s)],
+                    DeadPlayers = [.. model.Players.Where(w => !w.IsAlive).Select(s => (BasePlayerInfo)s)]
                 },
-                ExtraInfo = new ExtraInfoDetailsModel { ForceNextTurns = [.. allRoleStatuses.Where(rs => rs.Challenge).Select(s => $"{s.ApplicationInstanceId}:{s.UserId}")] }
+                ExtraInfo = new ExtraInfoDetailsModel
+                {
+                    ForceNextTurns = [.. allRoleStatuses.Where(rs => rs.Challenge).Select(s => s.UserId)]
+                }
             };
 
             return response;
