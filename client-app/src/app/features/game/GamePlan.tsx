@@ -36,11 +36,15 @@ function GamePlan() {
                 debugger;
                 const user = profileStore.logedInUSer();
                 if (user?.userName) {
-                    await communicationStore.addUserToRoom(
+                    var isJoined = await communicationStore.addUserToRoom(
                         AppConfig.appId,
                         roomId,
                         user.userName
                     );
+                    if (!isJoined) {
+                        console.error("Failed to join room. Room may be full or does not exist.");
+                        return;
+                    }
                     console.log("User added to room");
                 } else {
                     console.error("User info is incomplete.");
@@ -64,7 +68,7 @@ function GamePlan() {
     console.log("alivePlayers", communicationStore.turnModel?.alivePlayers);
     return (
         <main id="main-container">
-            
+
             <div className="row g-0 flex-md-grow-1">
                 <div className="col-md-4 col-lg-5 col-xl-3 bg-body-dark h100-scroll">
                     <div className="content">

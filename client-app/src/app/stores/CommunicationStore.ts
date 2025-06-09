@@ -155,24 +155,29 @@ export default class CommunicationStore {
     };
 
 
-    async addUserToRoom(appId: string, roomId: string, playerName: string): Promise<void> {
+    async addUserToRoom(appId: string, roomId: string, playerName: string): Promise<boolean> {
         try {
             if (!this.connection) {
                 console.error("Connection is not established.");
-                return;
+                return false;
             }
 
-            await this.connection.invoke(
+            var canJoin = await this.connection.invoke<boolean>(
                 "JoinRoomAuto",
                 appId,
                 roomId,
                 playerName
             );
+            if (!canJoin) {
+                console.error("Failed to join room. Room may be full or does not exist.");
+                return false;
+            }
             localStorage.setItem('currentRoom', roomId);
             console.log("User added to room:", { appId, roomId, playerName });
         } catch (error) {
             console.error("Error adding user to room:", error);
         }
+        return true;
     }
 
     async doAction(roomId: number, userId: string, hasGun: boolean) {

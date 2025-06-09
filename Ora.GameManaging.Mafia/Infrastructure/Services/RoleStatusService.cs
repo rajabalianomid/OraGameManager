@@ -26,5 +26,14 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
 
             return grouped;
         }
+
+        public async Task<bool> AlreadyJoinToRoomAsync(string applicationInstanceId, string roomId, string userId)
+        {
+            // Check if the user already has a role status in the room
+            var existingRoleStatus = await dbContext.RoleStatuses
+                .FirstOrDefaultAsync(rs => rs.ApplicationInstanceId == applicationInstanceId && rs.RoomId == roomId && rs.UserId == userId);
+            // If a role status exists, the user cannot join
+            return existingRoleStatus != null;
+        }
     }
 }

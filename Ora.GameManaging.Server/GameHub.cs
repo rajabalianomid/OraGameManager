@@ -198,14 +198,14 @@ namespace Ora.GameManaging.Server
             await gameManager.OnPlayerJoinedAsync(appId, roomId);
         }
 
-        public async Task JoinRoomAuto(string appId, string roomId, string playerName)
+        public async Task<bool> JoinRoomAuto(string appId, string roomId, string playerName)
         {
             var userId = $"{appId}:{playerName}";
             var key = $"{appId}:{roomId}";
             if (!Rooms.TryGetValue(key, out var room))
             {
                 await Clients.Caller.SendAsync("Error", $"Room {roomId} does not exist.");
-                return;
+                return false;
             }
             if (room.Players.TryGetValue(userId, out var existingPlayer))
             {
@@ -216,14 +216,21 @@ namespace Ora.GameManaging.Server
                 else
                 {
                     await Clients.Caller.SendAsync("Error", "You are already in this room.");
-                    return;
+                    return false;
                 }
             }
             var dbRoom = await roomRepo.GetByRoomIdAsync(appId, roomId);
             if (dbRoom == null)
             {
                 await Clients.Caller.SendAsync("Error", $"Room {roomId} not found in DB.");
-                return;
+                return false;
+            }
+
+            var userAlreadyJoined = await adapterFactory.Do<bool, JoinSituationModel>(new JoinSituationModel { ApplicationInstanceId = appId, RoomId = roomId, UserId = playerName });
+            if (dbRoom.IsGameStarted && !userAlreadyJoined)
+            {
+                await Clients.Caller.SendAsync("Error", "Cannot join room, game already started.");
+                return false;
             }
 
             await RemovePlayerRoleIfGameNotStarted(room.AppId, room.RoomId, playerName, room, dbRoom.IsGameStarted);
@@ -245,6 +252,8 @@ namespace Ora.GameManaging.Server
 
             // Call GameManager to handle post-join logic (e.g., auto-start game)
             await gameManager.OnPlayerJoinedAsync(appId, roomId);
+
+            return true;
         }
 
         public async Task LeaveRoom(string appId, string roomId, string userId)
