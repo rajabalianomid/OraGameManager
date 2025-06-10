@@ -218,9 +218,9 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
         {
             return await settingService.RemoveAssignedRoleAsync(applicationInstanceId, roomId, userId);
         }
-        public async Task<List<object>> GetTurnsAsync(string applicationInstanceId, string roomId)
+        public async Task<List<object>> GetTurnsAsync(string applicationInstanceId, string roomId, string phase)
         {
-            return await roleStatusService.GetTurnsAsync(applicationInstanceId, roomId);
+            return await roleStatusService.GetTurnsAsync(applicationInstanceId, roomId, phase);
         }
     }
 }

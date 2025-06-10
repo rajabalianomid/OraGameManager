@@ -5,7 +5,8 @@
         public override string ActionName => "GetTurnsAsync";
         public override string TypeName => "GameEngine";
 
-        public string ApplicationInstanceId { get; set; } = "";
-        public string RoomId { get; set; } = "";
+        public required string ApplicationInstanceId { get; set; }
+        public required string RoomId { get; set; }
+        public required string Phase { get; set; }
     }
 }

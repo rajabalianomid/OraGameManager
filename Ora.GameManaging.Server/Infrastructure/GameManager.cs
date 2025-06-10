@@ -170,7 +170,7 @@ namespace Ora.GameManaging.Server.Infrastructure
         // Example: Build your custom queue based on your game logic
         private async Task<List<object>> BuildCustomPlayerQueue(GameRoom room)
         {
-            var result = await _grpcAdapter.Do<object, TurnModel>(new TurnModel { ApplicationInstanceId = room.AppId, RoomId = room.RoomId });
+            var result = await _grpcAdapter.Do<object, TurnModel>(new TurnModel { ApplicationInstanceId = room.AppId, RoomId = room.RoomId, Phase = room.Phase });
 
             // Handle both JsonElement and JsonArray (for flexibility)
             if (result is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.Array)
