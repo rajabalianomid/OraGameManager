@@ -1,5 +1,4 @@
-﻿using Google.Protobuf.WellKnownTypes;
-using Grpc.Core;
+﻿using Grpc.Core;
 using Ora.GameManaging.Mafia.Protos;
 using System.Reflection;
 using System.Text.Json;
@@ -8,10 +7,21 @@ namespace Ora.GameManaging.Mafia.Infrastructure
 {
     public class AdapterHandler(IServiceProvider serviceProvider) : AdapterGrpc.AdapterGrpcBase
     {
+        // Whitelist of allowed service type names
+        private static readonly HashSet<string> AllowedServiceNames =
+        [
+            "GameEngine"
+            // Add other allowed service class names here
+        ];
+
         public override async Task<AdapterReply> Run(AdapterRequest request, ServerCallContext context)
         {
             var typeName = request.TypeName;
             var actionName = request.Action;
+
+            // Check if the requested service is allowed
+            if (!AllowedServiceNames.Contains(typeName))
+                return new AdapterReply { Error = $"Access to service '{typeName}' is not allowed." };
 
             // Find the service class by typeName
             var type = Assembly.GetExecutingAssembly().GetTypes()
