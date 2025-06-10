@@ -65,7 +65,7 @@ function GamePlan() {
         setPlayersFullScreen(!playersFullScreen);
     }
 
-    console.log("alivePlayers", communicationStore.turnModel?.alivePlayers);
+    console.log("alivePlayers", communicationStore.turnModel?.data?.alivePlayers);
     return (
         <main id="main-container">
 
@@ -83,12 +83,12 @@ function GamePlan() {
                                 </div>
                                 <div className="block-content">
                                     {
-                                        (communicationStore.turnModel?.alivePlayers || []).map((player, index) => (
+                                        (communicationStore.turnModel?.data?.alivePlayers || []).map((player, index) => (
                                             <GamePlayers key={index} Player={player} Died={false} />
                                         ))
                                     }
                                     {
-                                        (communicationStore.turnModel?.deadPlayers || []).map((player, index) => (
+                                        (communicationStore.turnModel?.data?.deadPlayers || []).map((player, index) => (
                                             <GamePlayers key={index} Player={player} Died={true} />
                                         ))
                                     }
@@ -97,8 +97,8 @@ function GamePlan() {
                         </div>
                         <div id="side-content" className="d-none d-lg-block push">
                             {
-                                [...(communicationStore.turnModel?.deadPlayers || []), ...(communicationStore.turnModel?.deadPlayers || [])].map((player, index) => (
-                                    <GamePlayers key={index} Player={player} Died={communicationStore.turnModel?.deadPlayers.includes(player) ?? false} />
+                                [...(communicationStore.turnModel?.data?.deadPlayers || []), ...(communicationStore.turnModel?.data?.deadPlayers || [])].map((player, index) => (
+                                    <GamePlayers key={index} Player={player} Died={communicationStore.turnModel?.data?.deadPlayers.includes(player) ?? false} />
                                 ))
                             }
                         </div>

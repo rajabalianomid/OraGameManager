@@ -1,4 +1,4 @@
-﻿namespace Ora.GameManaging.Server.Models.Adapter
+﻿namespace Ora.GameManaging.Server.Models
 {
     public class NextPhaseResponseModel
     {

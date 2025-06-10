@@ -9,7 +9,7 @@ using System.Text.Json;
 
 namespace Ora.GameManaging.Mafia.Infrastructure.Services
 {
-    public class MafiaEngine(MafiaDbContext dbContext, PhaseServiceFactory phaseServiceFactory)
+    public class GameEngine(MafiaDbContext dbContext, RoleStatusService roleStatusService, SettingService settingService, PhaseServiceFactory phaseServiceFactory)
     {
         public async Task<LatestInformationResponseModel> PrepareLatestInformationAsync(string requestModel)
         {
@@ -120,7 +120,6 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
 
             return response;
         }
-
         public async Task MakeEmptyOfChallengeAsync(string appId, string roomId)
         {
             // Fetch all role statuses for the specified application and room
@@ -135,7 +134,6 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
             // Save changes to the database
             await dbContext.SaveChangesAsync();
         }
-
         public async Task ProcessedActions(string appId, string roomId)
         {
             var findNotProcessedActions = await dbContext.GameActionHistories.Where(w => w.ApplicationInstanceId == appId && w.RoomId == roomId && w.IsProcessed == false).ToListAsync();
@@ -148,7 +146,6 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
                 await dbContext.SaveChangesAsync();
             }
         }
-
         public async Task<List<string>> GetNightReportAsync(string appId, string roomId, float nightRound)
         {
             // Fetch all actions for the specified night that are processed
@@ -174,7 +171,6 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
 
             return report;
         }
-
         public async Task<string> GetNightKillReportAsync(string appId, string roomId, float nightRound)
         {
             // Fetch all night actions for the specified round
@@ -197,7 +193,6 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
                 return "There was 1 kill last night.";
             return $"There were {killCount} kills last night.";
         }
-
         public NextPhaseModel GetNextPhase(string currentPhase)
         {
             var isLastPhase = ((PhaseStatus)Enum.GetValues<PhaseStatus>().Length - 1).ToString() == currentPhase;
@@ -206,6 +201,26 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
 
             int next = ((int)phase + 1) % Enum.GetValues<PhaseStatus>().Length;
             return new NextPhaseModel { Name = ((PhaseStatus)next).ToString(), IsLastPhase = isLastPhase };
+        }
+        public async Task<bool> AlreadyJoinToRoomAsync(string applicationInstanceId, string roomId, string userId)
+        {
+            return await roleStatusService.AlreadyJoinToRoomAsync(applicationInstanceId, roomId, userId);
+        }
+        public async Task<int> GetMaximumPlayerFromRoomAsync(string applicationInstanceId, string roomId)
+        {
+            return await settingService.GetMaximumPlayerFromRoomAsync(applicationInstanceId, roomId);
+        }
+        public async Task<string> GetNextAvailableRoleAsync(string applicationInstanceId, string roomId, string userId, CancellationToken cancellationToken)
+        {
+            return await settingService.GetNextAvailableRoleAsync(applicationInstanceId, roomId, userId, cancellationToken);
+        }
+        public async Task<string> RemoveAssignedRoleAsync(string applicationInstanceId, string roomId, string userId)
+        {
+            return await settingService.RemoveAssignedRoleAsync(applicationInstanceId, roomId, userId);
+        }
+        public async Task<List<object>> GetTurnsAsync(string applicationInstanceId, string roomId)
+        {
+            return await roleStatusService.GetTurnsAsync(applicationInstanceId, roomId);
         }
     }
 }

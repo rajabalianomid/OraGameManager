@@ -25,7 +25,7 @@ builder.Services.AddControllers();
 builder.Services.AddGrpc();
 //Add Services
 builder.Services.AddScoped<SettingService>();
-builder.Services.AddScoped<MafiaEngine>();
+builder.Services.AddScoped<GameEngine>();
 builder.Services.AddScoped<RoleStatusService>();
 builder.Services.AddScoped<BasePhaseService>();
 builder.Services.AddScoped<LobbyPhaseService>();

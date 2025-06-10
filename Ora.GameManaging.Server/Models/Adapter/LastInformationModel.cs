@@ -3,7 +3,7 @@
     public class LastInformationRequestModel : AdapterModel
     {
         public override string ActionName => "PrepareLatestInformationAsync";
-        public override string TypeName => "MafiaEngine";
+        public override string TypeName => "GameEngine";
 
         public required string RequestModel { get; set; }
     }

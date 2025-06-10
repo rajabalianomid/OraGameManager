@@ -3,7 +3,7 @@
     public class TurnModel : AdapterModel
     {
         public override string ActionName => "GetTurnsAsync";
-        public override string TypeName => "RoleStatusService";
+        public override string TypeName => "GameEngine";
 
         public string ApplicationInstanceId { get; set; } = "";
         public string RoomId { get; set; } = "";
