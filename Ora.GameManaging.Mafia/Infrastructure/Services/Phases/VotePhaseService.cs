@@ -11,5 +11,13 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services.Phases
             // TODO: Add Vote phase logic here
             return await base.Prepare(appId, roomId, phaseStatus);
         }
+        public override List<RoleStatusEntity> ProcessTurn(List<RoleStatusEntity> roleStatuses)
+        {
+            roleStatuses.ForEach(rs =>
+            {
+                rs.Turn = 0;
+            });
+            return roleStatuses;
+        }
     }
 }

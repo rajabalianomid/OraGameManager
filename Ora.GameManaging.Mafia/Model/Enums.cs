@@ -2,16 +2,15 @@
 {
     public enum PhaseStatus
     {
-        Lobby = 0,
-        Talk = 1,
-        Vote = 2,
-        Defense = 3,
-        FinalVote = 4,
-        MafiaTalk = 5,
-        Action = 6,
+        Lobby = 1,
+        Talk = 2,
+        Vote = 3,
+        Defense = 4,
+        FinalVote = 5,
+        MafiaTalk = 6,
+        Action = 7,
     }
     public enum AbilityTypes
-
     {
         Report = 1,
     }

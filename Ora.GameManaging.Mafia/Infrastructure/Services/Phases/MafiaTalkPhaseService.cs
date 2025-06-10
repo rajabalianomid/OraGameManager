@@ -11,5 +11,13 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services.Phases
             // TODO: Add MafiaTalk phase logic here
             return await base.Prepare(appId, roomId, phaseStatus);
         }
+        public override List<RoleStatusEntity> ProcessTurn(List<RoleStatusEntity> roleStatuses)
+        {
+            roleStatuses.Where(w => w.DarkSide).ToList().ForEach(rs =>
+            {
+                rs.Turn = 0;
+            });
+            return roleStatuses;
+        }
     }
 }

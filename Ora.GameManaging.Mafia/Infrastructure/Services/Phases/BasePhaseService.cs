@@ -47,6 +47,10 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services.Phases
             };
             return phaseModel;
         }
+        public virtual List<RoleStatusEntity> ProcessTurn(List<RoleStatusEntity> roleStatuses)
+        {
+            return roleStatuses;
+        }
 
         protected async Task<List<GameActionHistoryEntity>> GetNotProcessedActions(string appId, string roomId) =>
             await dbContext.GameActionHistories

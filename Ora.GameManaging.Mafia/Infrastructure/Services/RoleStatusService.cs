@@ -1,16 +1,21 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Ora.GameManaging.Mafia.Data;
+using Ora.GameManaging.Mafia.Infrastructure.Services.Phases;
 
 namespace Ora.GameManaging.Mafia.Infrastructure.Services
 {
-    public class RoleStatusService(MafiaDbContext dbContext)
+    public class RoleStatusService(MafiaDbContext dbContext, PhaseServiceFactory phaseServiceFactory)
     {
-        public async Task<List<object>> GetTurnsAsync(string applicationInstanceId, string roomId)
+        public async Task<List<object>> GetTurnsAsync(string applicationInstanceId, string roomId, string phase)
         {
+            var phaseService = phaseServiceFactory.GetPhaseService(phase) ?? throw new InvalidOperationException($"Phase service for '{phase}' not found.");
+
             // Fetch all role statuses for the room
             var roleStatuses = await dbContext.RoleStatuses
                 .Where(rs => rs.ApplicationInstanceId == applicationInstanceId && rs.RoomId == roomId)
                 .ToListAsync();
+
+            roleStatuses = phaseService.ProcessTurn(roleStatuses);
 
             // Group by Turn value
             var grouped = roleStatuses
