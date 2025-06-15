@@ -1,10 +1,12 @@
 ﻿using Microsoft.AspNetCore.SignalR;
+using Ora.GameManaging.Server.Data;
 using Ora.GameManaging.Server.Data.Repositories;
 using Ora.GameManaging.Server.Infrastructure;
 using Ora.GameManaging.Server.Infrastructure.Proxy;
 using Ora.GameManaging.Server.Models;
 using Ora.GameManaging.Server.Models.Adapter;
 using System.Collections.Concurrent;
+using System.Reflection;
 using System.Text.Json;
 using static Ora.GameManaging.Server.Infrastructure.GameManager; // Import static members of GameManager
 
@@ -18,7 +20,8 @@ namespace Ora.GameManaging.Server
         EventRepository eventRepo,
         NotificationManager notification,
         TurnManager turnManager,
-        GameManager gameManager) : Hub
+        GameManager gameManager,
+        GrpcAdapter grpcAdapter) : Hub
     {
         // Database to memory loader
         public static async Task LoadAllRoomsAsync(GameRoomRepository repo)
@@ -175,7 +178,12 @@ namespace Ora.GameManaging.Server
                 await Clients.Caller.SendAsync("Error", "You are already in this room.");
                 return;
             }
-            var player = new PlayerInfo { ConnectionId = Context.ConnectionId, UserId = userId, Name = playerName, Role = role };
+
+            var extraPlayerIinfo = await grpcAdapter.Do<object, ExtraPlayerInformationModel>(new ExtraPlayerInformationModel { ApplicationInstanceId = appId, RoomId = roomId, UserId = userId });
+            var mappedExtraPlayerIinfo = extraPlayerIinfo.MapToGeneralAttributes("Players", userId.ToString());
+
+
+            var player = new PlayerInfo { ConnectionId = Context.ConnectionId, UserId = userId, Name = playerName, Role = role, ExtraInfos = [.. mappedExtraPlayerIinfo.Select(s => new ExtraPlayetInfo { Key = s.Key, Value = s.Value ?? string.Empty })] };
             room.Players.TryAdd(userId, player);
 
             var dbRoom = await roomRepo.GetByRoomIdAsync(appId, roomId);
@@ -184,7 +192,10 @@ namespace Ora.GameManaging.Server
                 await Clients.Caller.SendAsync("Error", $"Room {roomId} not found in DB.");
                 return;
             }
-            await playerRepo.AddToRoomAsync(appId, roomId, Context.ConnectionId, userId, playerName, role, (int)PlayerStatus.Online);
+            await playerRepo.AddToRoomAsync(appId, roomId, Context.ConnectionId, userId, playerName, role, (int)PlayerStatus.Online, mappedExtraPlayerIinfo);
+
+
+            await playerRepo.AddExtraInfoAsync(mappedExtraPlayerIinfo);
 
             await playerRepo.UpdateLastSeenAsync(appId, roomId, userId, DateTime.UtcNow);
 
@@ -236,11 +247,13 @@ namespace Ora.GameManaging.Server
             await RemovePlayerRoleIfGameNotStarted(room.AppId, room.RoomId, playerName, room, dbRoom.IsGameStarted);
 
             var role = await adapterFactory.Do<string, NextRoleModel>(new NextRoleModel { ApplicationInstanceId = appId, RoomId = roomId, UserId = playerName });
-            var player = new PlayerInfo { ConnectionId = Context.ConnectionId, UserId = userId, Name = playerName, Role = role };
+            var extraPlayerIinfo = await grpcAdapter.Do<object, ExtraPlayerInformationModel>(new ExtraPlayerInformationModel { ApplicationInstanceId = appId, RoomId = roomId, UserId = playerName });
+            var mappedExtraPlayerIinfo = extraPlayerIinfo.MapToGeneralAttributes("Players", userId.ToString());
+            var player = new PlayerInfo { ConnectionId = Context.ConnectionId, UserId = userId, Name = playerName, Role = role, ExtraInfos = [.. mappedExtraPlayerIinfo.Select(s => new ExtraPlayetInfo { Key = s.Key, Value = s.Value ?? string.Empty })] };
             room.Players.TryAdd(userId, player);
 
 
-            await playerRepo.AddToRoomAsync(appId, roomId, Context.ConnectionId, userId, playerName, role, (int)PlayerStatus.Online);
+            await playerRepo.AddToRoomAsync(appId, roomId, Context.ConnectionId, userId, playerName, role, (int)PlayerStatus.Online, mappedExtraPlayerIinfo);
 
             await playerRepo.UpdateLastSeenAsync(appId, roomId, userId, DateTime.UtcNow);
 

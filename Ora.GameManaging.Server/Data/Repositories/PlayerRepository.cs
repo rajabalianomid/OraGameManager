@@ -1,10 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Ora.GameManaging.Server.Models;
 
 namespace Ora.GameManaging.Server.Data.Repositories
 {
     public class PlayerRepository(GameDbContext db)
     {
-        public async Task<PlayerEntity> AddToRoomAsync(string appId, string roomId, string connectionId, string userId, string playerName, string? role, int status)
+        public async Task<PlayerEntity> AddToRoomAsync(string appId, string roomId, string connectionId, string userId, string playerName, string? role, int status, List<GeneralAttributeEntity> extraInfos)
         {
             var room = await db.Rooms
                 .Include(r => r.Players)
@@ -15,6 +16,7 @@ namespace Ora.GameManaging.Server.Data.Repositories
             if (existingPlayer != null)
             {
                 db.Players.Remove(existingPlayer);
+                db.GeneralAttributes.RemoveRange(db.GeneralAttributes.Where(a => a.EntityKey == "Players" && a.EntityId == userId).ToList());
                 await db.SaveChangesAsync();
             }
 
@@ -27,6 +29,7 @@ namespace Ora.GameManaging.Server.Data.Repositories
                 Status = status,
                 GameRoom = room
             };
+            db.GeneralAttributes.AddRange(extraInfos);
             db.Players.Add(player);
             await db.SaveChangesAsync();
             return player;
@@ -40,6 +43,7 @@ namespace Ora.GameManaging.Server.Data.Repositories
             if (player != null)
             {
                 db.Players.Remove(player);
+                db.GeneralAttributes.RemoveRange(db.GeneralAttributes.Where(a => a.EntityKey == "Players" && a.EntityId == userId).ToList());
                 await db.SaveChangesAsync();
             }
         }
@@ -118,6 +122,12 @@ namespace Ora.GameManaging.Server.Data.Repositories
                 player.Role = newRole;
                 await db.SaveChangesAsync();
             }
+        }
+
+        public async Task AddExtraInfoAsync(List<GeneralAttributeEntity> entities)
+        {
+            db.GeneralAttributes.AddRange(entities);
+            await db.SaveChangesAsync();
         }
     }
 }

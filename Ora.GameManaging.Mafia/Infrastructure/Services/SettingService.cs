@@ -6,7 +6,7 @@ using Ora.GameManaging.Mafia.Model.Mapping;
 
 namespace Ora.GameManaging.Mafia.Infrastructure.Services
 {
-    public class SettingService(MafiaDbContext dbContext)
+    public class SettingService(MafiaDbContext dbContext, AzureService azureService)
     {
         public async Task<string> GetNextAvailableRoleAsync(string applicationInstanceId, string roomId, string userId, CancellationToken cancellationToken)
         {
@@ -83,6 +83,8 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
 
                     if (!dbContext.RoleStatuses.Any(w => w.UserId == userId && w.RoomId == roomId && w.ApplicationInstanceId == applicationInstanceId))
                     {
+                        var acsUserId = await azureService.CreateUserAsync();
+
                         var roleStatus = new RoleStatusEntity
                         {
                             ApplicationInstanceId = applicationInstanceId,
@@ -91,6 +93,7 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
                             RoleName = role,
                             Abilities = string.Empty, // Initialize with empty abilities
                             Turn = maxTurn + 2, // Increment turn for the new role
+                            ACSUserId = acsUserId,
                             LastUpdated = DateTime.UtcNow
                         };
 

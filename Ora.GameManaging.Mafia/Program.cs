@@ -35,6 +35,7 @@ builder.Services.AddScoped<DefensePhaseService>();
 builder.Services.AddScoped<FinalVotePhaseService>();
 builder.Services.AddScoped<MafiaTalkPhaseService>();
 builder.Services.AddScoped<ActionPhaseService>();
+builder.Services.AddScoped<AzureService>();
 builder.Services.AddScoped<PhaseServiceFactory>();
 //Grpc
 builder.Services.AddScoped<GameRoomProxy>();

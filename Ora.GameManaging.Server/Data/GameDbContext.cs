@@ -13,6 +13,7 @@ namespace Ora.GameManaging.Server.Data
         public DbSet<GameRoomEntity> Rooms { get; set; }
         public DbSet<PlayerEntity> Players { get; set; }
         public DbSet<GameEventEntity> Events { get; set; }
+        public DbSet<GeneralAttributeEntity> GeneralAttributes { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -22,6 +23,7 @@ namespace Ora.GameManaging.Server.Data
             modelBuilder.ApplyConfiguration(new GameRoomEntityConfiguration());
             modelBuilder.ApplyConfiguration(new PlayerEntityConfiguration());
             modelBuilder.ApplyConfiguration(new GameEventEntityConfiguration());
+            modelBuilder.ApplyConfiguration(new GeneralAttributeEntityConfiguration());
         }
     }
 }

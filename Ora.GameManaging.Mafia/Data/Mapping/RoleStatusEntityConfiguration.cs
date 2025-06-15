@@ -12,6 +12,7 @@ namespace Ora.GameManaging.Mafia.Data.Mapping
             builder.Property(r => r.RoomId).IsRequired().HasMaxLength(50);
             builder.Property(r => r.UserId).IsRequired().HasMaxLength(450);
             builder.Property(r => r.RoleName).IsRequired().HasMaxLength(50);
+            builder.Property(r => r.ACSUserId).IsRequired().HasMaxLength(100);
             builder.Property(r => r.LastUpdated).IsRequired();
         }
     }

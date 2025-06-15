@@ -6,6 +6,7 @@ import GamePlayers from "./GamePlayes";
 import { observer } from "mobx-react-lite";
 import { useParams } from "react-router-dom";
 import { AppConfig } from "../../models/AppConfig";
+import VideoCall from "../voip/VideoCall";
 
 function GamePlan() {
 
@@ -106,12 +107,9 @@ function GamePlan() {
                 </div>
                 <div className="col-md-8 col-lg-7 col-xl-9">
                     <div className="content content-full">
-                        {/* {
-                            communicationStore.turnModel?.actionModel &&
-                            communicationStore.turnModel?.actionModel?.gameUsers &&
-                            communicationStore.turnModel?.actionModel?.gameUsers.length > 0 &&
-                            (<GameAction isValid={communicationStore.turnModel?.isActionValid ?? false} actionModel={communicationStore.turnModel.actionModel} />)
-                        } */}
+                        {
+                            <VideoCall></VideoCall>
+                        }
                     </div>
                 </div>
             </div>

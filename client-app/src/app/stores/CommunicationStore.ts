@@ -117,7 +117,7 @@ export default class CommunicationStore {
         });
     };
     TurnInfo = (model: TurnModel) => {
-        debugger;
+        // debugger;
         runInAction(() => {
             this.turnModel = model;
             console.log('TurnInfo', this.turnModel);

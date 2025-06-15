@@ -1,15 +1,12 @@
-﻿using Microsoft.CodeAnalysis.CSharp.Scripting;
-using Microsoft.CodeAnalysis.Scripting;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Ora.GameManaging.Mafia.Data;
 using Ora.GameManaging.Mafia.Infrastructure.Services.Phases;
 using Ora.GameManaging.Mafia.Model;
-using Ora.GameManaging.Mafia.Model.Mapping;
 using System.Text.Json;
 
 namespace Ora.GameManaging.Mafia.Infrastructure.Services
 {
-    public class GameEngine(MafiaDbContext dbContext, RoleStatusService roleStatusService, SettingService settingService, PhaseServiceFactory phaseServiceFactory)
+    public class GameEngine(MafiaDbContext dbContext, RoleStatusService roleStatusService, SettingService settingService, PhaseServiceFactory phaseServiceFactory, AzureService azureService, IConfiguration configuration)
     {
         public async Task<LatestInformationResponseModel> PrepareLatestInformationAsync(string requestModel)
         {
@@ -221,6 +218,28 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
         public async Task<List<object>> GetTurnsAsync(string applicationInstanceId, string roomId, string phase)
         {
             return await roleStatusService.GetTurnsAsync(applicationInstanceId, roomId, phase);
+        }
+        public async Task<object> ExtraPlayerInfo(string applicationInstanceId, string roomId, string userId)
+        {
+            // Fetch the player information from the database
+            var player = await dbContext.RoleStatuses
+                .AsNoTracking()
+                .FirstOrDefaultAsync(rs =>
+                    rs.ApplicationInstanceId == applicationInstanceId &&
+                    rs.RoomId == roomId &&
+                    rs.UserId == userId);
+            if (player is null)
+                throw new Exception($"Player with UserId {userId} not found in room {roomId} for application {applicationInstanceId}.");
+
+            var (token, expireTime) = await azureService.GetTokenAsync(player.ACSUserId); // Ensure the token is fetched before mapping
+
+            // Map to ExternalPlayerInfoModel
+            var externalPlayerInfo = new ExternalPlayerInfoModel
+            {
+                ACSToken = token,
+                ACSTokenExpire = expireTime
+            };
+            return externalPlayerInfo;
         }
     }
 }
