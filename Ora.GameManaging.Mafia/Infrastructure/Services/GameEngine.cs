@@ -236,8 +236,9 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
             // Map to ExternalPlayerInfoModel
             var externalPlayerInfo = new ExternalPlayerInfoModel
             {
+                ACSUserId = player.ACSUserId,
                 ACSToken = token,
-                ACSTokenExpire = expireTime
+                ACSTokenExpire = expireTime,
             };
             return externalPlayerInfo;
         }

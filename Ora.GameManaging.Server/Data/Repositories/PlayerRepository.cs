@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Ora.GameManaging.Server.Data.Migrations;
 using Ora.GameManaging.Server.Models;
 
 namespace Ora.GameManaging.Server.Data.Repositories
@@ -12,13 +13,10 @@ namespace Ora.GameManaging.Server.Data.Repositories
                 .FirstOrDefaultAsync(r => r.AppId == appId && r.RoomId == roomId)
                 ?? throw new Exception("Room not found");
 
-            var existingPlayer = room.Players.FirstOrDefault(p => p.UserId == userId);
-            if (existingPlayer != null)
-            {
-                db.Players.Remove(existingPlayer);
-                db.GeneralAttributes.RemoveRange(db.GeneralAttributes.Where(a => a.EntityKey == "Players" && a.EntityId == userId).ToList());
-                await db.SaveChangesAsync();
-            }
+
+            db.Players.RemoveRange(db.Players.Where(p => p.UserId == userId).ToList());
+            db.GeneralAttributes.RemoveRange(db.GeneralAttributes.Where(a => a.EntityKey == "Players" && a.EntityId == userId).ToList());
+            await db.SaveChangesAsync();
 
             var player = new PlayerEntity
             {
@@ -103,6 +101,7 @@ namespace Ora.GameManaging.Server.Data.Repositories
             foreach (var player in stalePlayers)
             {
                 removed.Add((player.GameRoom.AppId, player.GameRoom.RoomId, player.UserId));
+                db.GeneralAttributes.RemoveRange(db.GeneralAttributes.Where(a => a.EntityKey == "Players" && a.EntityId == player.UserId).ToList());
                 db.Players.Remove(player);
             }
 

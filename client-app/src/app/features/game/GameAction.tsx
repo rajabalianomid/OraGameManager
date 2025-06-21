@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ActionModel } from "../../models/ActionModel ";
+import { ActionModel } from "../../models/ActionModel";
 import { useStore } from "../../Store";
 import { observer } from "mobx-react-lite";
 

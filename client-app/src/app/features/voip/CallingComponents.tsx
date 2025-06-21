@@ -1,11 +1,13 @@
 import { usePropsFor, VideoGallery, ControlBar, CameraButton, MicrophoneButton, ScreenShareButton, EndCallButton, useCall } from "@azure/communication-react";
+import { LocalVideoStream, VideoDeviceInfo } from "@azure/communication-calling";
+import { useDeviceManager } from "@azure/communication-react";
 import { useStore } from "../../Store";
 import { observer } from "mobx-react-lite";
 
 function CallingComponents() {
 
-    const { communicationStore } = useStore();
-
+    const { communicationStore, videoStreamStore } = useStore();
+    const deviceManager = useDeviceManager();
     const videoGalleryProps = usePropsFor(VideoGallery);
     const cameraProps = usePropsFor(CameraButton);
     const microphoneProps = usePropsFor(MicrophoneButton);
@@ -17,11 +19,42 @@ function CallingComponents() {
     const buttonsDisabled = !(
         call?.state === "InLobby" || call?.state === "Connected"
     );
+    const turnCameraOn = async () => {
+        if (call && call.startVideo && deviceManager) {
+            const cameras = await deviceManager.getCameras();
+            if (cameras && cameras.length > 0) {
+                const localVideoStream = new LocalVideoStream(cameras[0]);
+                videoStreamStore.setLocalVideoStream(localVideoStream);
+                await call.startVideo(localVideoStream);
+            }
+        }
+    };
+
+    const turnCameraOff = async () => {
+        if (call && call.stopVideo && videoStreamStore.localVideoStream) {
+            await call.stopVideo(videoStreamStore.localVideoStream);
+            videoStreamStore.setLocalVideoStream(null);
+        }
+    };
+
+    const turnMicrophoneOn = async () => {
+        if (call && call.unmute) {
+            await call.unmute();
+        }
+    };
+
+    const turnMicrophoneOff = async () => {
+        if (call && call.mute) {
+            await call.mute();
+        }
+    };
 
     if (call?.state === "Disconnected") {
         communicationStore.setOnCall(false);
         return <CallEnded />;
     }
+
+
 
     return (
         <div className="relative flex flex-col h-full bg-gray-50">
@@ -68,23 +101,6 @@ function CallingComponents() {
                         <MicrophoneButton
                             {...microphoneProps}
                             disabled={buttonsDisabled ?? microphoneProps.disabled}
-                        />
-                    )}
-                    {screenShareProps && (
-                        <ScreenShareButton
-                            {...screenShareProps}
-                            disabled={buttonsDisabled}
-                        />
-                    )}
-                    {endCallProps && (
-                        <EndCallButton
-                            styles={{
-                                root: {
-                                    color: "black",
-                                },
-                            }}
-                            {...endCallProps}
-                            disabled={buttonsDisabled}
                         />
                     )}
                 </ControlBar>

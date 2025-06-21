@@ -35,12 +35,25 @@ function VideoCall() {
             const initializeCall = async () => {
                 if (!statefulCallClient) {
                     debugger;
-                    await communicationStore.getUser();
-                    const { userId, token } = communicationStore.videoCallToken;
 
+                    const extraPlayerInfo = communicationStore.turnModel?.extraInfo.extraPlayerInfo || [];
+
+                    const acsTokenObj = extraPlayerInfo.find(info => info.key === "acsToken");
+                    // const acsTokenExpireObj = extraPlayerInfo.find(info => info.key === "acsTokenExpire");
+                    const acsUserIdObj = extraPlayerInfo.find(info => info.key === "acsUserId");
+
+                    const token = acsTokenObj?.value || "";
+                    // const expiresOn = acsTokenExpireObj?.value || "";
+                    const acsUserId = acsUserIdObj?.value || "";
+
+                    // const isExpireDateValid = !isNaN(Date.parse(expiresOn));
+                    // const isExpireDateInFuture = isExpireDateValid && new Date(expiresOn) > new Date();
+                    // const isUserIdEmpty = !acsUserId || acsUserId.trim() === "";
+
+                    
                     // Create StatefulCallClient
                     const statefulCallClient = createStatefulCallClient({
-                        userId: { communicationUserId: userId },
+                        userId: { communicationUserId: acsUserId },
                     });
 
                     statefulCallClient.getDeviceManager().then((deviceManager) => {

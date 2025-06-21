@@ -1,4 +1,4 @@
-import { ActionModel } from "./ActionModel ";
+import { ActionModel } from "./ActionModel";
 import { TurnStatusType } from "./Enums";
 
 export interface RoleModel {

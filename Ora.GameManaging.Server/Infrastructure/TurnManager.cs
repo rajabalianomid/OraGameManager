@@ -9,6 +9,7 @@ using Ora.GameManaging.Server.Models.Adapter;
 using System.Collections.Concurrent;
 using System.Numerics;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace Ora.GameManaging.Server.Infrastructure
 {
@@ -311,11 +312,19 @@ namespace Ora.GameManaging.Server.Infrastructure
                 await grpcAdapter.Do(new MakeEmptyOfChallengeModel { AppId = room.AppId, RoomId = room.RoomId });
             }
 
-            var jsonObj = new { latestinfo?.Data, ExtraInfo = latestinfo?.ExtraInfo?.ForceNextTurns }?.ToJsonNode();
+            var jsonObj = new
+            {
+                latestinfo?.Data,
+                ExtraInfo = new
+                {
+                    latestinfo?.ExtraInfo?.ForceNextTurns,
+                    ExtraPlayerInfo = JsonNode.Parse(JsonSerializer.Serialize(player.ExtraInfos, new JsonSerializerOptions { PropertyNamingPolicy = new LowerCaseNamingPolicy(), PropertyNameCaseInsensitive = true })),
+                    IsYourTurn = isYourTurn,
+                    ReminderTime = i
+                }
+            }?.ToJsonNode();
             if (jsonObj != null)
             {
-                jsonObj["remindTime"] = i;
-                jsonObj["isYourTurn"] = isYourTurn;
                 await hubContext.Clients.Client(player.ConnectionId).SendAsync("TurnInfo", jsonObj);
             }
             return result;
