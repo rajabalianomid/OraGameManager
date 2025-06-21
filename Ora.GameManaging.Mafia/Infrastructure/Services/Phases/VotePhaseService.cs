@@ -6,10 +6,10 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services.Phases
 {
     public class VotePhaseService(MafiaDbContext dbContext) : BasePhaseService(dbContext)
     {
-        public override async Task<PhaseModel> Prepare(string appId, string roomId, string phaseStatus)
+        public override async Task<PhaseModel> Prepare(string appId, string roomId, string phaseStatus, RoleStatusModel? roleStatus)
         {
             // TODO: Add Vote phase logic here
-            return await base.Prepare(appId, roomId, phaseStatus);
+            return await base.Prepare(appId, roomId, phaseStatus, null);
         }
         public override List<RoleStatusEntity> ProcessTurn(List<RoleStatusEntity> roleStatuses)
         {

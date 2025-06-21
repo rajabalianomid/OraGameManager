@@ -9,7 +9,7 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services.Phases
 {
     public class BasePhaseService(MafiaDbContext dbContext)
     {
-        public virtual async Task<PhaseModel> Prepare(string appId, string roomId, string phaseStatus)
+        public virtual async Task<PhaseModel> Prepare(string appId, string roomId, string phaseStatus, RoleStatusModel? roleStatus)
         {
             // TODO: Add Defense phase logic here
             var actions = await GetNotProcessedActions(appId, roomId);

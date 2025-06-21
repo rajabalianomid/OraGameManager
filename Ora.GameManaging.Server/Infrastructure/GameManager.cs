@@ -139,16 +139,17 @@ namespace Ora.GameManaging.Server.Infrastructure
                             break;
                         }
 
+                        if (!(skipFirstPhaseChange && isFirstLoop))
+                        {
+                            await GoToNextGamePhase(room);
+                        }
+
                         // Build the rotating queue at the start of each round
                         var rotatingQueue = await BuildCustomPlayerQueue(room);
 
                         // Start rotating turn for this queue
                         _turnManager.StartGroupTurnRotating(key, rotatingQueue, room.TurnDurationSeconds);
 
-                        if (!(skipFirstPhaseChange && isFirstLoop))
-                        {
-                            await GoToNextGamePhase(room);
-                        }
 
                         isFirstLoop = false;
 

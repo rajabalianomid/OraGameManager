@@ -94,7 +94,8 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
                 .ToListAsync();
 
             var phaseService = phaseServiceFactory.GetPhaseService(phase);
-            await phaseService.Prepare(model.AppId, model.RoomId, phase);
+            var preparedPhase = await phaseService.Prepare(model.AppId, model.RoomId, phase, roleStatus);
+
 
             // Build the response model
             var response = new LatestInformationResponseModel
@@ -107,7 +108,8 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
                     RoleStatus = roleStatus,
                     Abilities = model.IsYourTurn ? [.. abilities.Select(a => a.Name)] : [],
                     AlivePlayers = [.. model.Players.Where(w => w.IsAlive).Select(s => (BasePlayerInfo)s)],
-                    DeadPlayers = [.. model.Players.Where(w => !w.IsAlive).Select(s => (BasePlayerInfo)s)]
+                    DeadPlayers = [.. model.Players.Where(w => !w.IsAlive).Select(s => (BasePlayerInfo)s)],
+                    HasVideo = preparedPhase.HasVideo,
                 },
                 ExtraInfo = new ExtraInfoDetailsModel
                 {

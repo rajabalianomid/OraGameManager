@@ -21,6 +21,7 @@ function VideoCall() {
 
     const { communicationStore, mainStore } = useStore();
     const { onCall } = communicationStore;
+    const prevHasVideo = useRef<boolean | undefined>(undefined);
     const [statefulCallClient, setStatefulCallClient] = useState<StatefulCallClient>();
     const callAgent = useRef<CallAgent>();
     const [call, setCall] = useState<Call>();
@@ -31,7 +32,8 @@ function VideoCall() {
         mainStore.setWithoutSlider(true);
     }, [])
     useEffect(() => {
-        if (onCall) {
+        const hasVideo = communicationStore.turnModel?.data.hasVideo;
+        if (!prevHasVideo.current && hasVideo) {
             const initializeCall = async () => {
                 if (!statefulCallClient) {
                     debugger;
@@ -50,7 +52,7 @@ function VideoCall() {
                     // const isExpireDateInFuture = isExpireDateValid && new Date(expiresOn) > new Date();
                     // const isUserIdEmpty = !acsUserId || acsUserId.trim() === "";
 
-                    
+
                     // Create StatefulCallClient
                     const statefulCallClient = createStatefulCallClient({
                         userId: { communicationUserId: acsUserId },
@@ -88,7 +90,8 @@ function VideoCall() {
             };
             initializeCall();
         }
-    }, [onCall]);
+        prevHasVideo.current = hasVideo;
+    }, [communicationStore.turnModel?.data.hasVideo]);
 
 
     const handlePlayersCloseBox = () => {
@@ -104,9 +107,6 @@ function VideoCall() {
 
     return (
         <div className="block-content">
-            <div className="mb-12">
-                <button type="submit" className="btn btn-primary" onClick={() => handleStart()}>Start</button>
-            </div>
             <FluentThemeProvider>
                 {statefulCallClient && (
                     <CallClientProvider callClient={statefulCallClient}>

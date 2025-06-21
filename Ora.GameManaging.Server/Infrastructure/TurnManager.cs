@@ -241,6 +241,7 @@ namespace Ora.GameManaging.Server.Infrastructure
                             {
                                 await Task.Delay(1000, state.TokenSource.Token);
                             }
+                            Console.WriteLine(i + " seconds left ,phase " + room.Phase);
                         }
                     }
 
@@ -326,6 +327,7 @@ namespace Ora.GameManaging.Server.Infrastructure
             if (jsonObj != null)
             {
                 await hubContext.Clients.Client(player.ConnectionId).SendAsync("TurnInfo", jsonObj);
+                Console.WriteLine(player.ConnectionId + " Player: " + userId + "Is Turn: " + isYourTurn);
             }
             return result;
         }

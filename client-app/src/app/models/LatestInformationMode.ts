@@ -10,4 +10,5 @@ export interface LatestInformationModel {
     abilities?: string[];
     alivePlayers: PlayerModel[];
     deadPlayers: PlayerModel[];
+    hasVideo: boolean;
 }

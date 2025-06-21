@@ -3,6 +3,7 @@ import { LocalVideoStream, VideoDeviceInfo } from "@azure/communication-calling"
 import { useDeviceManager } from "@azure/communication-react";
 import { useStore } from "../../Store";
 import { observer } from "mobx-react-lite";
+import { useEffect, useState } from "react";
 
 function CallingComponents() {
 
@@ -13,12 +14,37 @@ function CallingComponents() {
     const microphoneProps = usePropsFor(MicrophoneButton);
     const screenShareProps = usePropsFor(ScreenShareButton);
     const endCallProps = usePropsFor(EndCallButton);
+    const canSpeak = communicationStore.turnModel?.data.roleStatus?.canSpeak;
+    const isYourTurn = communicationStore.turnModel?.extraInfo.isYourTurn;
+    const hasVideo = communicationStore.turnModel?.data.hasVideo;
 
     const call = useCall();
+
+    useEffect(() => {
+        if (canSpeak && isYourTurn) {
+            // debugger;
+            var uuid = communicationStore.turnModel?.data.userId
+            console.log(uuid + " turn:" + isYourTurn);
+            turnMicrophoneOn();
+        }
+        if (!canSpeak || !isYourTurn) {
+            turnMicrophoneOff();
+        }
+    }, [canSpeak, isYourTurn]);
+
+    useEffect(() => {
+        debugger;
+        if (hasVideo === false && call) {
+            call.hangUp && call.hangUp();
+            videoStreamStore.setCallEnded(true);
+        }
+    }, [hasVideo, call, communicationStore]);
+
 
     const buttonsDisabled = !(
         call?.state === "InLobby" || call?.state === "Connected"
     );
+
     const turnCameraOn = async () => {
         if (call && call.startVideo && deviceManager) {
             const cameras = await deviceManager.getCameras();
@@ -49,12 +75,14 @@ function CallingComponents() {
         }
     };
 
-    if (call?.state === "Disconnected") {
-        communicationStore.setOnCall(false);
+
+    const CallEnded = () => {
+        return <h1>You ended the call.</h1>;
+    };
+
+    if (videoStreamStore.callEnded) {
         return <CallEnded />;
     }
-
-
 
     return (
         <div className="relative flex flex-col h-full bg-gray-50">
@@ -97,7 +125,7 @@ function CallingComponents() {
                             disabled={buttonsDisabled ?? cameraProps.disabled}
                         />
                     )}
-                    {microphoneProps && (
+                    {canSpeak && isYourTurn && microphoneProps && (
                         <MicrophoneButton
                             {...microphoneProps}
                             disabled={buttonsDisabled ?? microphoneProps.disabled}
@@ -107,10 +135,6 @@ function CallingComponents() {
             </div>
         </div>
     );
-};
-
-const CallEnded = () => {
-    return <h1>You ended the call.</h1>;
 };
 
 export default observer(CallingComponents);
