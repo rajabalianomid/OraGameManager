@@ -17,6 +17,7 @@ namespace Ora.GameManaging.Server.Infrastructure
     {
         // Callback for notifying when a turn is finished
         private Action<string>? _turnFinishedCallback;
+        private readonly object _turnPlayersLock = new();
 
         // Internal state for each room's timer
         private class GroupTimerState
@@ -108,15 +109,17 @@ namespace Ora.GameManaging.Server.Infrastructure
                                 await Task.Delay(200, state.TokenSource.Token);
 
                             // Send per-player info (gRPC, TurnInfo, etc.)
+                            room.CurrentTurnPlayersId.Clear();
+
                             foreach (var userId in userIds)
                             {
                                 if (room.Players.TryGetValue(userId, out var player))
                                 {
                                     using var scope = serviceProvider.CreateScope();
                                     var gameRoomService = scope.ServiceProvider.GetRequiredService<IGameRoomService>();
-                                    await gameRoomService.UpdateCurrentTurnAndSyncCacheAsync(room.AppId, roomId.Split(":").Last(), userId);
+                                    await gameRoomService.UpdateCurrentTurnAndSyncCacheAsync(room.AppId, roomId.Split(":").Last(), [userId]);
 
-                                    room.CurrentTurnPlayerId = userId;
+                                    room.CurrentTurnPlayersId.Add(userId);
                                     var latestinfo = await grpcAdapter.Do<ThridPartInfo, LastInformationRequestModel>(
                                         new LastInformationRequestModel { RequestModel = room.Serialize() });
 
@@ -182,12 +185,15 @@ namespace Ora.GameManaging.Server.Infrastructure
                         // Track users to move to notInCurrentTurn
                         var usersToMove = new List<string>();
 
+                        room.CurrentTurnPlayersId.Clear();
+
                         for (int i = seconds; i >= 0; i--)
                         {
                             state.RemainingSeconds = i;
 
                             while (state.IsPaused)
                                 await Task.Delay(200, state.TokenSource.Token);
+
 
                             var tasks = userIds
                                 .Select(async userId =>
@@ -299,9 +305,14 @@ namespace Ora.GameManaging.Server.Infrastructure
             {
                 using var scope = serviceProvider.CreateScope();
                 var gameRoomService = scope.ServiceProvider.GetRequiredService<IGameRoomService>();
-                await gameRoomService.UpdateCurrentTurnAndSyncCacheAsync(room.AppId, room.RoomId.Split(":").Last(), userId);
 
-                room.CurrentTurnPlayerId = userId;
+                lock (_turnPlayersLock)
+                {
+                    if (!room.CurrentTurnPlayersId.Contains(userId))
+                        room.CurrentTurnPlayersId.Add(userId);
+                }
+
+                await gameRoomService.UpdateCurrentTurnAndSyncCacheAsync(room.AppId, room.RoomId.Split(":").Last(), room.CurrentTurnPlayersId.ToList());
             }
 
             // Only for single turns, handle nextForceTurns

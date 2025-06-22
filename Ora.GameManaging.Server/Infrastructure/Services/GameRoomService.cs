@@ -26,17 +26,17 @@ namespace Ora.GameManaging.Server.Infrastructure.Services
         public Task<bool> UpdateRoomAsync(GameRoomEntity room, CancellationToken cancellationToken = default)
             => repository.UpdateAsync(room, cancellationToken);
 
-        public async Task UpdateCurrentTurnAndSyncCacheAsync(string appId, string roomId, string userId)
+        public async Task UpdateCurrentTurnAndSyncCacheAsync(string appId, string roomId, List<string> userIds)
         {
             // Update the current turn in the database
-            await gameRoomRepository.UpdateCurrentTurnAsync(appId, roomId, userId);
+            await gameRoomRepository.UpdateCurrentTurnAsync(appId, roomId, string.Join(";", userIds));
 
             // Retrieve the latest room data from the database
             var updatedRoomEntity = await gameRoomRepository.GetByRoomIdAsync(appId, roomId);
             if (updatedRoomEntity != null)
             {
                 var key = $"{appId}:{roomId}";
-                GameManager.Rooms[key].CurrentTurnPlayerId = updatedRoomEntity.CurrentTurnPlayer;
+                GameManager.Rooms[key].CurrentTurnPlayersId = updatedRoomEntity.CurrentTurnPlayer == null ? [] : [.. updatedRoomEntity.CurrentTurnPlayer.Split(';')];
             }
         }
 

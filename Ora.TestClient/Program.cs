@@ -28,10 +28,13 @@ class Program
             var roomId = Console.ReadLine() ?? "TestRoom";
             Console.Write("Client count: ");
             var countStr = Console.ReadLine();
+            Console.Write("Start From: ");
+            var startFrom = Console.ReadLine();
+
             int clientCount = int.TryParse(countStr, out var c) ? c : 5;
 
             var program = new Program();
-            await program.TestAutoJoinClientsAsync(clientCount, appId, roomId);
+            await program.TestAutoJoinClientsAsync(clientCount, appId, roomId, int.Parse(startFrom ?? "0"));
             return;
         }
 
@@ -318,12 +321,12 @@ class Program
             Console.WriteLine($"{name} changed role to {newRole}");
         });
     }
-    async Task TestAutoJoinClientsAsync(int clientCount, string appId, string roomId)
+    async Task TestAutoJoinClientsAsync(int clientCount, string appId, string roomId, int startFrom)
     {
         Thread.Sleep(4000);
         var clients = new List<HubConnection>();
 
-        for (int i = 0; i < clientCount; i++)
+        for (int i = startFrom; i < clientCount + startFrom; i++)
         {
             Thread.Sleep(4000);
             var playerName = $"TestUser_{i + 1}";

@@ -98,7 +98,7 @@ namespace Ora.GameManaging.Server.Infrastructure
             var dbRoom = await roomRepo.GetByRoomIdAsync(appId, roomId);
             if (dbRoom == null) return;
 
-            dbRoom.IsGameStarted = true;
+            await roomRepo.RoomStartedAsync(appId, roomId);
             await roomRepo.SaveSnapshotAsync(appId, roomId, room.Serialize());
             await eventRepo.AddAsync(dbRoom.Id, "GameStarted", null, null);
 
@@ -268,7 +268,7 @@ namespace Ora.GameManaging.Server.Infrastructure
             using var scope = _serviceProvider.CreateScope();
             var roomRepo = scope.ServiceProvider.GetRequiredService<GameRoomRepository>();
             var foundRoom = await roomRepo.UpdatePhaseAsync(room.AppId, room.RoomId, result.Name, result.IsLastPhase);
-            room.CurrentTurnPlayerId = foundRoom.CurrentTurnPlayer;
+            room.CurrentTurnPlayersId = foundRoom.CurrentTurnPlayer == null ? [] : [.. foundRoom.CurrentTurnPlayer.Split(';')];
             room.Phase = foundRoom.Phase;
             room.Round = foundRoom.Round;
             return result.Name;

@@ -14,6 +14,9 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
             var model = JsonSerializer.Deserialize<LatestInformationRequestModel>(requestModel)
                 ?? throw new ArgumentNullException(nameof(requestModel), "Request model cannot be null");
 
+            if (model.TargetPlayersId.Count > 1)
+                throw new ArgumentException("TargetPlayersId should contain only one player.", nameof(requestModel));
+
             // Find the current turn player
             var targetPlayer = model.Players.FirstOrDefault(w => w.UserId == model.TargetPlayerId)
                 ?? throw new ArgumentException($"Player with UserId {model.TargetPlayerId} not found in the request model.", nameof(requestModel));

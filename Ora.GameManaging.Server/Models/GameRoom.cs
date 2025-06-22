@@ -13,7 +13,7 @@ namespace Ora.GameManaging.Server.Models
         public string AppId { get; set; } = appId;
         public string RoomId { get; set; } = roomId;
         public ConcurrentDictionary<string, PlayerInfo> Players { get; set; } = new();
-        public string? CurrentTurnPlayerId { get; set; }
+        public ConcurrentBag<string> CurrentTurnPlayersId { get; set; } = [];
         public int TurnDurationSeconds { get; set; } = 10;
         public string Phase { get; set; } = "Lobey";
         public float Round { get; set; }
@@ -24,7 +24,7 @@ namespace Ora.GameManaging.Server.Models
             {
                 AppId,
                 RoomId,
-                TargetPlayerId = targetPlayerId ?? CurrentTurnPlayerId,
+                TargetPlayersId = targetPlayerId == null ? CurrentTurnPlayersId : [targetPlayerId],
                 Players = Players.Values.Select(p => new { p.ConnectionId, p.UserId, p.Name, p.Role, p.Status, RoomId }),
                 TurnDurationSeconds,
                 Phase,

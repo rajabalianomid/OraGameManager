@@ -71,5 +71,19 @@ namespace Ora.GameManaging.Server.Data.Repositories
             }
             return foundRoom ?? throw new KeyNotFoundException($"Room with AppId: {appId} and RoomId: {roomId} not found.");
         }
+        public async Task RoomStartedAsync(string appId, string roomId)
+        {
+            var foundRoom = await db.Rooms
+                .FirstOrDefaultAsync(r => r.AppId == appId && r.RoomId == roomId);
+            if (foundRoom != null)
+            {
+                foundRoom.IsGameStarted = true;
+                await db.SaveChangesAsync();
+            }
+            else
+            {
+                throw new KeyNotFoundException($"Room with AppId: {appId} and RoomId: {roomId} not found.");
+            }
+        }
     }
 }
