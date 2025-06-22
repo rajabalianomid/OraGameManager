@@ -40,7 +40,7 @@ function GameAction(props: GameActionProps) {
                                         <div className="row g-sm">
                                             {props.actionModel.buttons.map((button, index) => (
                                                 <div className="col-12" style={{ padding: "10px" }} key={index}>
-                                                    <a className={`btn w-100 btn-alt-${button.buttonStyle}`} href="#" onClick={() => roomStore.currentRoom?.id && communicationStore.doAction(roomStore.currentRoom.id, user.userId, button.isGun)} >
+                                                    <a className={`btn w-100 btn-alt-${button.buttonStyle}`} href="#" onClick={() => roomStore.currentRoom?.id && communicationStore.doAction(roomStore.currentRoom.id, user.userId)} >
                                                         <i className={`fa fa-fw fa-${button.buttonIcon} me-1`}></i> {button.buttonName}
                                                     </a>
                                                 </div>

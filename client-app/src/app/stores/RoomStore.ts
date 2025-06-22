@@ -43,7 +43,7 @@ export default class RoomStore {
         debugger;
         const room = localStorage.getItem('currentRoom');
         if (room) {
-            this.currentRoom = { id: Number(room) } as CurrentRoomModel;
+            this.currentRoom = { id: room } as CurrentRoomModel;
             return this.currentRoom;
         }
     };

@@ -119,6 +119,7 @@ export default class CommunicationStore {
     TurnInfo = (model: TurnModel) => {
         // debugger;
         runInAction(() => {
+            debugger;
             this.turnModel = model;
             console.log('TurnInfo', this.turnModel);
         });
@@ -180,11 +181,11 @@ export default class CommunicationStore {
         return true;
     }
 
-    async doAction(roomId: number, userId: string, hasGun: boolean) {
+    async doAction(roomId: string, userId: string) {
         debugger;
-        if (roomId === 0 || userId === '')
+        if (roomId === '' || userId === '')
             return;
-        await this.connection?.invoke<ActionModelResponse>("DoAction", userId, Number(roomId), hasGun);
+        await this.connection?.invoke<ActionModelResponse>("DoAction", userId, roomId);
     }
 
     //#region Video Call

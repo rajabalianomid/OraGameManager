@@ -2,6 +2,8 @@ import { observer } from 'mobx-react-lite';
 import avatar15 from '../../../assets/media/avatars/avatar15.jpg';
 import photo10 from '../../../assets/media/photos/photo10.jpg';
 import { PlayerModel } from '../../models/PlayerModel';
+import { useStore } from '../../Store';
+import { AppConfig } from '../../models/AppConfig';
 
 interface GamePlayersProps {
     Player: PlayerModel;
@@ -9,6 +11,9 @@ interface GamePlayersProps {
 }
 
 function GamePlayers(props: GamePlayersProps) {
+
+    const { communicationStore, mainStore, profileStore } = useStore();
+
     return (
         <div className="block block-rounded text-center bg-image" style={{ backgroundImage: `url(${photo10})` }}>
             <div className="block-content">
@@ -25,23 +30,19 @@ function GamePlayers(props: GamePlayersProps) {
                 <div className="fs-sm text-muted mb-0">
                     <div className="btn-toolbar mb-2 btn-toolbar-center" role="toolbar" aria-label="Icons Toolbar with button groups">
                         <div className="btn-group me-2 mb-2" role="group" aria-label="Icons Text group">
-                            <button type="button" className="btn btn-primary">
-                                <i className="fa fa-fw fa-bold"></i>
-                            </button>
-                            <button type="button" className="btn btn-primary">
-                                <i className="fa fa-fw fa-italic"></i>
-                            </button>
-                            <button type="button" className="btn btn-primary">
-                                <i className="fa fa-fw fa-underline"></i>
-                            </button>
-                            <button type="button" className="btn btn-primary">
-                                <i className="fa fa-fw fa-strikethrough"></i>
-                            </button>
+                            {
+                                (communicationStore.turnModel?.data?.abilities || []).map((ability, index) => (
+                                    <button key={index} type="button" className="btn btn-primary">
+                                        {/* <i className={`fa fa-fw fa-${ability.icon}`}></i> */}
+                                        <i className="fa fa-fw fa-bold" title={`${ability}`} onClick={() => communicationStore.doAction(AppConfig.appId, communicationStore.turnModel?.data?.userId ?? '')}></i>
+                                    </button>
+                                ))
+                            }
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }
 

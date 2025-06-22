@@ -269,6 +269,17 @@ namespace Ora.GameManaging.Server
             return true;
         }
 
+        public async Task<bool> DoAction(string appId, string roomId)
+        {
+            var key = $"{appId}:{roomId}";
+            if (!Rooms.ContainsKey(key))
+                return false;
+
+
+
+            return true;
+        }
+
         public async Task LeaveRoom(string appId, string roomId, string userId)
         {
             var key = $"{appId}:{roomId}";
