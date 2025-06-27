@@ -2,6 +2,7 @@
 using Ora.GameManaging.Mafia.Data;
 using Ora.GameManaging.Mafia.Infrastructure.Services.Phases;
 using Ora.GameManaging.Mafia.Model;
+using Ora.GameManaging.Mafia.Model.Mapping;
 using System.Text.Json;
 
 namespace Ora.GameManaging.Mafia.Infrastructure.Services
@@ -23,6 +24,8 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
 
             // Get all role statuses for this room and application
             var allRoleStatuses = await dbContext.RoleStatuses
+                .Include(rs => rs.RoleStatusesAbilities)
+                .ThenInclude(i => i.Ability)
                 .AsNoTracking()
                 .Where(rs =>
                     rs.ApplicationInstanceId == model.AppId &&
@@ -52,7 +55,7 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
                         HasDayAbility = statusEntity.HasDayAbility,
                         CanSpeak = statusEntity.CanSpeak,
                         DarkSide = statusEntity.DarkSide,
-                        Abilities = statusEntity.Abilities,
+                        Abilities = statusEntity.RoleStatusesAbilities.ToAbilityModels(),
                         Challenge = statusEntity.Challenge
                     };
                 }
@@ -81,20 +84,16 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
                     HasDayAbility = roleStatusEntity.HasDayAbility,
                     CanSpeak = roleStatusEntity.CanSpeak,
                     DarkSide = roleStatusEntity.DarkSide,
-                    Abilities = roleStatusEntity.Abilities,
+                    Abilities = roleStatusEntity.RoleStatusesAbilities.ToAbilityModels(),
                     Challenge = roleStatusEntity.Challenge
                 };
             }
 
-            // Parse abilities from the Abilities column
-            var abilityNames = (roleStatus?.Abilities ?? string.Empty)
-                .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
             // Get only abilities related to the current phase
             var phase = model.Phase;
-            var abilities = await dbContext.Set<AbilityEntity>()
-                .Where(a => abilityNames.Contains(a.Name) && a.RelatedPhase == phase)
-                .ToListAsync();
+            var abilities = roleStatus?.Abilities
+                .Where(a => a.RelatedPhase == phase).ToList();
 
             var phaseService = phaseServiceFactory.GetPhaseService(phase);
             var preparedPhase = await phaseService.Prepare(model.AppId, model.RoomId, phase, roleStatus);

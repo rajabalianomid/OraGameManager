@@ -36,7 +36,14 @@ function CallingComponents() {
         debugger;
         if (hasVideo === false && call) {
             call.hangUp && call.hangUp();
+            videoStreamStore.setLocalVideoStream(null);
             videoStreamStore.setCallEnded(true);
+        }
+        if (hasVideo === true && videoStreamStore.callEnded) {
+            // Re-initialize the call
+            videoStreamStore.setCallEnded(false);
+            // Optionally, trigger call re-join/init logic here if needed
+            // e.g., communicationStore.joinCall();
         }
     }, [hasVideo, call, communicationStore]);
 

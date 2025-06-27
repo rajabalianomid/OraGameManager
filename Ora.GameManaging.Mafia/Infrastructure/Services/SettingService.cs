@@ -85,19 +85,32 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
                     {
                         var acsUserId = await azureService.CreateUserAsync();
 
+                        var roleAbility = roleAttributes.Where(w => w.Key == "Abilities").Select(s => s.Value).FirstOrDefault();
+                        var settingAbilities = roleAbility?.Split(';').ToList();
+
+                        List<AbilityEntity> abilities = [];
+
+                        if (settingAbilities != null)
+                            abilities = [.. dbContext.AbilityEntities.Where(w => settingAbilities.Contains(w.Name))];
+
                         var roleStatus = new RoleStatusEntity
                         {
                             ApplicationInstanceId = applicationInstanceId,
                             RoomId = roomId,
                             UserId = userId,
                             RoleName = role,
-                            Abilities = string.Empty, // Initialize with empty abilities
                             Turn = maxTurn + 2, // Increment turn for the new role
                             ACSUserId = acsUserId,
-                            LastUpdated = DateTime.UtcNow
+                            LastUpdated = DateTime.UtcNow,
+                            RoleStatusesAbilities = [.. abilities.Select(a => new RoleStatusesAbilityEntity
+                            {
+                                AbilityId = a.Id,
+                            })],
                         };
 
                         AttributeReflectionHelper.ApplyAttributesToModel(roleStatus, roleAttributes);
+
+
                         dbContext.RoleStatuses.Add(roleStatus);
                         await dbContext.SaveChangesAsync(cancellationToken);
                     }

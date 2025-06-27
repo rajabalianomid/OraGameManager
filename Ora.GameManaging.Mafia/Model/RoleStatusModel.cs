@@ -1,4 +1,5 @@
 ﻿using Ora.GameManaging.Mafia.Data;
+using Ora.GameManaging.Mafia.Model.Mapping;
 
 namespace Ora.GameManaging.Mafia.Model
 {
@@ -13,7 +14,7 @@ namespace Ora.GameManaging.Mafia.Model
         public bool CanSpeak { get; set; }
         public bool DarkSide { get; set; }
         public bool Challenge { get; set; }
-        public string Abilities { get; set; } = default!;
+        public List<AbilityModel> Abilities { get; set; } = [];
 
         public RoleStatusModel() { }
         public RoleStatusModel(RoleStatusEntity entity)
@@ -27,7 +28,7 @@ namespace Ora.GameManaging.Mafia.Model
             CanSpeak = entity.CanSpeak;
             DarkSide = entity.DarkSide;
             Challenge = entity.Challenge;
-            Abilities = entity.Abilities;
+            Abilities = entity.RoleStatusesAbilities.ToAbilityModels();
         }
 
         public void MakeEmpty()
@@ -41,7 +42,7 @@ namespace Ora.GameManaging.Mafia.Model
             CanSpeak = false;
             DarkSide = false;
             Challenge = false;
-            Abilities = string.Empty;
+            Abilities = [];
         }
     }
 }
