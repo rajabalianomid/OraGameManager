@@ -1,3 +1,5 @@
+import { AbilityModel } from "./AbilityModel";
+
 export interface RoleStatusModel {
     roleName: string;
     health: number;
@@ -7,5 +9,5 @@ export interface RoleStatusModel {
     hasDayAbility: boolean;
     canSpeak: boolean;
     darkSide: boolean;
-    abilities: string;
+    abilities?: AbilityModel[];
 }

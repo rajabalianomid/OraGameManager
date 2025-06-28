@@ -1,3 +1,4 @@
+import { AbilityModel } from "./AbilityModel";
 import { PlayerModel } from "./PlayerModel";
 import { RoleStatusModel } from "./RoleStatusModel";
 
@@ -7,7 +8,7 @@ export interface LatestInformationModel {
     round: number;
     roleStatus?: RoleStatusModel;
     isAlive: boolean;
-    abilities?: string[];
+    abilities: AbilityModel[];
     alivePlayers: PlayerModel[];
     deadPlayers: PlayerModel[];
     hasVideo: boolean;

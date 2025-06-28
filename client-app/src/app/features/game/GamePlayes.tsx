@@ -8,11 +8,12 @@ import { AppConfig } from '../../models/AppConfig';
 interface GamePlayersProps {
     Player: PlayerModel;
     Died: boolean;
+    RoomId: string;
 }
 
 function GamePlayers(props: GamePlayersProps) {
-
     const { communicationStore, mainStore, profileStore } = useStore();
+    console.log("Ability", communicationStore.turnModel?.data);
 
     return (
         <div className="block block-rounded text-center bg-image" style={{ backgroundImage: `url(${photo10})` }}>
@@ -31,12 +32,27 @@ function GamePlayers(props: GamePlayersProps) {
                     <div className="btn-toolbar mb-2 btn-toolbar-center" role="toolbar" aria-label="Icons Toolbar with button groups">
                         <div className="btn-group me-2 mb-2" role="group" aria-label="Icons Text group">
                             {
-                                (communicationStore.turnModel?.data?.abilities || []).map((ability, index) => (
-                                    <button key={index} type="button" className="btn btn-primary">
-                                        {/* <i className={`fa fa-fw fa-${ability.icon}`}></i> */}
-                                        <i className="fa fa-fw fa-bold" title={`${ability}`} onClick={() => communicationStore.doAction(AppConfig.appId, communicationStore.turnModel?.data?.userId ?? '')}></i>
-                                    </button>
-                                ))
+                                (communicationStore.turnModel?.data?.abilities || []).map((ability, index) => {
+                                    debugger;
+                                    return (
+                                        <button key={index} type="button" className="btn btn-primary">
+                                            {/* <i className={`fa fa-fw fa-${ability.icon}`}></i> */}
+                                            <i
+                                                className="fa fa-fw fa-bold"
+                                                title={`${ability}`}
+                                                onClick={() =>
+                                                    communicationStore.doAction(
+                                                        AppConfig.appId,
+                                                        props.RoomId,
+                                                        communicationStore.turnModel?.data?.userId ?? '',
+                                                        ability.name,
+                                                        props.Player.userId
+                                                    )
+                                                }
+                                            ></i>
+                                        </button>
+                                    );
+                                })
                             }
                         </div>
                     </div>

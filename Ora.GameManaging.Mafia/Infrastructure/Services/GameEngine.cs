@@ -7,7 +7,7 @@ using System.Text.Json;
 
 namespace Ora.GameManaging.Mafia.Infrastructure.Services
 {
-    public class GameEngine(MafiaDbContext dbContext, RoleStatusService roleStatusService, SettingService settingService, PhaseServiceFactory phaseServiceFactory, AzureService azureService, IConfiguration configuration)
+    public class GameEngine(MafiaDbContext dbContext, RoleStatusService roleStatusService, SettingService settingService, PhaseServiceFactory phaseServiceFactory, GameActionHistoryService gameActionHistoryService, AzureService azureService, IConfiguration configuration)
     {
         public async Task<LatestInformationResponseModel> PrepareLatestInformationAsync(string requestModel)
         {
@@ -98,26 +98,35 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
             var phaseService = phaseServiceFactory.GetPhaseService(phase);
             var preparedPhase = await phaseService.Prepare(model.AppId, model.RoomId, phase, roleStatus);
 
+            var response = new LatestInformationResponseModel();
 
-            // Build the response model
-            var response = new LatestInformationResponseModel
+            try
             {
-                Data = new LatestInformationDataResponseModel
+                // Build the response model
+                response = new LatestInformationResponseModel
                 {
-                    UserId = model.TargetPlayerId,
-                    Phase = phase,
-                    Round = model.Round,
-                    RoleStatus = roleStatus,
-                    Abilities = model.IsYourTurn ? [.. abilities.Select(a => a.Name)] : [],
-                    AlivePlayers = [.. model.Players.Where(w => w.IsAlive).Select(s => (BasePlayerInfo)s)],
-                    DeadPlayers = [.. model.Players.Where(w => !w.IsAlive).Select(s => (BasePlayerInfo)s)],
-                    HasVideo = preparedPhase.HasVideo,
-                },
-                ExtraInfo = new ExtraInfoDetailsModel
-                {
-                    ForceNextTurns = [.. allRoleStatuses.Where(rs => rs.Challenge).Select(s => s.UserId)]
-                }
-            };
+                    Data = new LatestInformationDataResponseModel
+                    {
+                        UserId = model.TargetPlayerId,
+                        Phase = phase,
+                        Round = model.Round,
+                        RoleStatus = roleStatus,
+                        Abilities = model.IsYourTurn && abilities != null ? abilities : [],
+                        AlivePlayers = [.. model.Players.Where(w => w.IsAlive).Select(s => (BasePlayerInfo)s)],
+                        DeadPlayers = [.. model.Players.Where(w => !w.IsAlive).Select(s => (BasePlayerInfo)s)],
+                        HasVideo = preparedPhase.HasVideo,
+                    },
+                    ExtraInfo = new ExtraInfoDetailsModel
+                    {
+                        ForceNextTurns = [.. allRoleStatuses.Where(rs => rs.Challenge).Select(s => s.UserId)]
+                    }
+                };
+            }
+            catch (Exception ex)
+            {
+
+            }
+
 
             return response;
         }
@@ -245,6 +254,10 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
                 ACSTokenExpire = expireTime,
             };
             return externalPlayerInfo;
+        }
+        public async Task DoActionAsync(string applicationInstanceId, string roomId, string userId, string abilityName, string targetUserId, float round, string phase)
+        {
+            await gameActionHistoryService.Insert(applicationInstanceId, roomId, userId, abilityName, targetUserId, round, phase);
         }
     }
 }

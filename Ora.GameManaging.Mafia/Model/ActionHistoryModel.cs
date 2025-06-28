@@ -10,7 +10,7 @@ namespace Ora.GameManaging.Mafia.Model
         public string ActorUserId { get; set; } = default!;
         public string ActorRole { get; set; } = default!;
         public string TargetUserId { get; set; } = default!;
-        public int ActionTime { get; set; }
+        public DateTime ActionTime { get; set; }
         public float Round { get; set; }
         public bool IsProcessed { get; set; }
         public string? Result { get; set; }
@@ -27,7 +27,7 @@ namespace Ora.GameManaging.Mafia.Model
             ActorUserId = entity.ActorUserId;
             ActorRole = entity.ActorRole;
             TargetUserId = entity.TargetUserId;
-            ActionTime = entity.ActionTime;
+            //ActionTime = entity.ActionTime;
             Round = entity.Round;
             IsProcessed = entity.IsProcessed;
             Result = entity.Result;

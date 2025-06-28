@@ -170,85 +170,87 @@ namespace Ora.GameManaging.Server.Infrastructure
             {
                 for (int idx = 0; idx < state.TargetPlayers.Count; idx++)
                 {
-                    // Support both single and group
-                    List<string> userIds = state.TargetPlayers[idx] switch
-                    {
-                        string single => [single],
-                        List<string> group => group,
-                        _ => []
-                    };
+                    if (!GameManager.Rooms.TryGetValue(roomId, out var room))
+                        continue;
+
 
                     int seconds = state.RemainingSeconds;
 
-                    if (GameManager.Rooms.TryGetValue(roomId, out var room))
+                    // Track users to move to notInCurrentTurn
+                    var usersToMove = new List<string>();
+
+                    room.CurrentTurnPlayersId.Clear();
+
+                    for (int i = seconds; i >= 0; i--)
                     {
-                        // Track users to move to notInCurrentTurn
-                        var usersToMove = new List<string>();
 
-                        room.CurrentTurnPlayersId.Clear();
-
-                        for (int i = seconds; i >= 0; i--)
+                        // Build userIds for this group, but only include users who are still in the room
+                        List<string> userIds = state.TargetPlayers[idx] switch
                         {
-                            state.RemainingSeconds = i;
+                            string single when room.Players.ContainsKey(single) => [single],
+                            List<string> group => [.. group.Where(uid => room.Players.ContainsKey(uid))],
+                            _ => []
+                        };
 
-                            while (state.IsPaused)
-                                await Task.Delay(200, state.TokenSource.Token);
+                        state.RemainingSeconds = i;
+
+                        while (state.IsPaused)
+                            await Task.Delay(200, state.TokenSource.Token);
 
 
-                            var tasks = userIds
-                                .Select(async userId =>
+                        var tasks = userIds
+                            .Select(async userId =>
+                            {
+                                var result = await HandlePlayerTurnInfoAsync(room, state, userIds, idx, i, userId, true);
+                                if (!result.IsAlive || !result.Success)
                                 {
-                                    var result = await HandlePlayerTurnInfoAsync(room, state, userIds, idx, i, userId, true);
-                                    if (!result.IsAlive || !result.Success)
-                                    {
-                                        usersToMove.Add(userId);
-                                    }
-                                    return result;
-                                }).ToList();
+                                    usersToMove.Add(userId);
+                                }
+                                return result;
+                            }).ToList();
 
-                            await Task.WhenAll(tasks);
+                        await Task.WhenAll(tasks);
 
-                            // Flatten state.TargetPlayers to a list of user IDs (strings)
-                            var allTargetUserIds = state.TargetPlayers
-                                .SelectMany(tp => tp is string s ? [s] : tp is List<string> list ? list : Enumerable.Empty<string>())
-                                .ToList();
-                            var notInCurrentTurn = allTargetUserIds.Except(userIds).ToList();
+                        // Flatten state.TargetPlayers to a list of user IDs (strings)
+                        var allTargetUserIds = state.TargetPlayers
+                            .SelectMany(tp => tp is string s ? [s] : tp is List<string> list ? list : Enumerable.Empty<string>())
+                            .ToList();
+                        var notInCurrentTurn = allTargetUserIds.Except(userIds).ToList();
 
-                            // Move users with IsAlive == false or Success == false to notInCurrentTurn for next tick
-                            if (usersToMove.Count > 0)
-                            {
-                                userIds = [.. userIds.Except(usersToMove)];
-                                notInCurrentTurn.AddRange(usersToMove);
-                                usersToMove.Clear();
-                            }
-
-                            // If no users alive in this turn, break
-                            if (userIds.Count == 0)
-                                break;
-
-                            var tasksnotInCurrentTurn = notInCurrentTurn
-                                .Select(userId => HandlePlayerTurnInfoAsync(room, state, userIds, idx, i, userId, false))
-                                .ToList();
-
-                            await Task.WhenAll(tasksnotInCurrentTurn);
-
-
-                            // Timeout for all in this turn
-                            if (i == 0)
-                            {
-                                var connectionIds = userIds
-                                    .Select(uid => room.Players.TryGetValue(uid, out var p) ? p.ConnectionId : null)
-                                    .Where(cid => cid != null)
-                                    .Cast<string>()
-                                    .ToList();
-                                await hubContext.Clients.Clients(connectionIds).SendAsync("TurnTimeout", userIds);
-                            }
-                            else
-                            {
-                                await Task.Delay(1000, state.TokenSource.Token);
-                            }
-                            Console.WriteLine(i + " seconds left ,phase " + room.Phase);
+                        // Move users with IsAlive == false or Success == false to notInCurrentTurn for next tick
+                        if (usersToMove.Count > 0)
+                        {
+                            userIds = [.. userIds.Except(usersToMove)];
+                            notInCurrentTurn.AddRange(usersToMove);
+                            usersToMove.Clear();
                         }
+
+                        // If no users alive in this turn, break
+                        if (userIds.Count == 0)
+                            break;
+
+                        var tasksnotInCurrentTurn = notInCurrentTurn
+                            .Select(userId => HandlePlayerTurnInfoAsync(room, state, userIds, idx, i, userId, false))
+                            .ToList();
+
+                        await Task.WhenAll(tasksnotInCurrentTurn);
+
+
+                        // Timeout for all in this turn
+                        if (i == 0)
+                        {
+                            var connectionIds = userIds
+                                .Select(uid => room.Players.TryGetValue(uid, out var p) ? p.ConnectionId : null)
+                                .Where(cid => cid != null)
+                                .Cast<string>()
+                                .ToList();
+                            await hubContext.Clients.Clients(connectionIds).SendAsync("TurnTimeout", userIds);
+                        }
+                        else
+                        {
+                            await Task.Delay(1000, state.TokenSource.Token);
+                        }
+                        Console.WriteLine(i + " seconds left ,phase " + room.Phase);
                     }
 
 

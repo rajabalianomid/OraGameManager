@@ -117,11 +117,10 @@ export default class CommunicationStore {
         });
     };
     TurnInfo = (model: TurnModel) => {
-        // debugger;
+        console.log('TurnInfo', this.turnModel);
         runInAction(() => {
-            debugger;
             this.turnModel = model;
-            console.log('TurnInfo', this.turnModel);
+
         });
     };
     PlaySound = (soundName: string) => {
@@ -181,11 +180,11 @@ export default class CommunicationStore {
         return true;
     }
 
-    async doAction(roomId: string, userId: string) {
+    async doAction(appId: string, roomId: string, userId: string, ability: string, targetUserId: string) {
         debugger;
         if (roomId === '' || userId === '')
             return;
-        await this.connection?.invoke<ActionModelResponse>("DoAction", userId, roomId);
+        await this.connection?.invoke<ActionModelResponse>("DoAction", appId, roomId, userId, ability, targetUserId);
     }
 
     //#region Video Call

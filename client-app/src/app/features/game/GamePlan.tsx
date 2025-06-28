@@ -85,12 +85,12 @@ function GamePlan() {
                                 <div className="block-content">
                                     {
                                         (communicationStore.turnModel?.data?.alivePlayers || []).map((player, index) => (
-                                            <GamePlayers key={index} Player={player} Died={false} />
+                                            <GamePlayers key={index} Player={player} Died={false} RoomId={roomId ?? ""} />
                                         ))
                                     }
                                     {
                                         (communicationStore.turnModel?.data?.deadPlayers || []).map((player, index) => (
-                                            <GamePlayers key={index} Player={player} Died={true} />
+                                            <GamePlayers key={index} Player={player} Died={true} RoomId={roomId ?? ""} />
                                         ))
                                     }
                                 </div>
@@ -99,7 +99,7 @@ function GamePlan() {
                         <div id="side-content" className="d-none d-lg-block push">
                             {
                                 [...(communicationStore.turnModel?.data?.deadPlayers || []), ...(communicationStore.turnModel?.data?.deadPlayers || [])].map((player, index) => (
-                                    <GamePlayers key={index} Player={player} Died={communicationStore.turnModel?.data?.deadPlayers.includes(player) ?? false} />
+                                    <GamePlayers key={index} Player={player} Died={communicationStore.turnModel?.data?.deadPlayers.includes(player) ?? false} RoomId={roomId ?? ""} />
                                 ))
                             }
                         </div>

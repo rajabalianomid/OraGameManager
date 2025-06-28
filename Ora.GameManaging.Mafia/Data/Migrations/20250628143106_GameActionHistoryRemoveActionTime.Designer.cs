@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Ora.GameManaging.Mafia.Data;
 
@@ -11,9 +12,11 @@ using Ora.GameManaging.Mafia.Data;
 namespace Ora.GameManaging.Mafia.Data.Migrations
 {
     [DbContext(typeof(MafiaDbContext))]
-    partial class MafiaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250628143106_GameActionHistoryRemoveActionTime")]
+    partial class GameActionHistoryRemoveActionTime
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -273,9 +276,6 @@ namespace Ora.GameManaging.Mafia.Data.Migrations
 
                     b.Property<int>("AbilityId")
                         .HasColumnType("int");
-
-                    b.Property<DateTime>("ActionTime")
-                        .HasColumnType("datetime2");
 
                     b.Property<string>("ActorRole")
                         .IsRequired()
