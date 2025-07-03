@@ -8,6 +8,5 @@ namespace Ora.GameManaging.Mafia.Model
         public List<RoleStatusModel>? RoleStatuses { get; set; }
         public List<AbilityModel>? Abilities { get; set; }
         public List<string> Result { get; set; } = default!;
-        public bool HasVideo { get; set; }
     }
 }

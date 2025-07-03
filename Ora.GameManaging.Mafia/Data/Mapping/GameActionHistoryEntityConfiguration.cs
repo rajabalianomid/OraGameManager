@@ -42,6 +42,8 @@ namespace Ora.GameManaging.Mafia.Data.Mapping
             builder.Property(e => e.Result);
 
             builder.Property(e => e.Phase).HasMaxLength(20);
+
+            builder.Property(e => e.CurrentPhase).HasMaxLength(20);
         }
     }
 }

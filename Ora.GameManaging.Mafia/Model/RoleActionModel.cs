@@ -12,5 +12,6 @@ namespace Ora.GameManaging.Mafia.Model
         public required List<GameActionHistoryEntity> Actions { get; set; }
         public required List<RoleStatusEntity> RoleStatuses { get; set; }
         public required List<AbilityEntity> Abilities { get; set; }
+        public required GameActionHistoryEntity Action { get; set; }
     }
 }

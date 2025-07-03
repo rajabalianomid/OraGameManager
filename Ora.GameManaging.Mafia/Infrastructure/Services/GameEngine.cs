@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Ora.GameManaging.Mafia.Data;
+using Ora.GameManaging.Mafia.Data.Migrations;
 using Ora.GameManaging.Mafia.Infrastructure.Services.Phases;
 using Ora.GameManaging.Mafia.Model;
 using Ora.GameManaging.Mafia.Model.Mapping;
@@ -66,7 +67,7 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
             }
 
             // Find the RoleStatus for the current turn player
-            var lastPartUserId = model.TargetPlayerId.Split(":").Last();
+            var lastPartUserId = model.TargetPlayerId?.Split(":").Last();
             var roleStatusEntity = allRoleStatuses
                 .FirstOrDefault(rs => rs.UserId == lastPartUserId && rs.RoleName == targetPlayer.Role);
 
@@ -95,8 +96,16 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
             var abilities = roleStatus?.Abilities
                 .Where(a => a.RelatedPhase == phase).ToList();
 
+            List<GameActionHistoryEntity> actionHistories = [];
+            if (abilities != null && abilities.Count != 0 && lastPartUserId != null)
+            {
+                actionHistories = await gameActionHistoryService.GetAsync(model.AppId, model.RoomId, lastPartUserId, abilities?.Select(a => a.Id).ToList() ?? [], model.Round, phase);
+            }
+
+            abilities = abilities?.Where(w => !actionHistories.Any(a => a.AbilityId == w.Id)).ToList();
+
             var phaseService = phaseServiceFactory.GetPhaseService(phase);
-            var preparedPhase = await phaseService.Prepare(model.AppId, model.RoomId, phase, roleStatus);
+            var preparingPhase = await phaseService.Preparing(model.AppId, model.RoomId, phase, model.TargetPlayerId ?? string.Empty);
 
             var response = new LatestInformationResponseModel();
 
@@ -107,14 +116,14 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
                 {
                     Data = new LatestInformationDataResponseModel
                     {
-                        UserId = model.TargetPlayerId,
+                        UserId = model.TargetPlayerId ?? string.Empty,
                         Phase = phase,
                         Round = model.Round,
                         RoleStatus = roleStatus,
                         Abilities = model.IsYourTurn && abilities != null ? abilities : [],
                         AlivePlayers = [.. model.Players.Where(w => w.IsAlive).Select(s => (BasePlayerInfo)s)],
                         DeadPlayers = [.. model.Players.Where(w => !w.IsAlive).Select(s => (BasePlayerInfo)s)],
-                        HasVideo = preparedPhase.HasVideo,
+                        HasVideo = preparingPhase.HasVideo,
                     },
                     ExtraInfo = new ExtraInfoDetailsModel
                     {
@@ -255,9 +264,16 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
             };
             return externalPlayerInfo;
         }
-        public async Task DoActionAsync(string applicationInstanceId, string roomId, string userId, string abilityName, string targetUserId, float round, string phase)
+        public async Task<bool> DoActionAsync(string applicationInstanceId, string roomId, string userId, string abilityName, string targetUserId, float round, string phase)
         {
-            await gameActionHistoryService.Insert(applicationInstanceId, roomId, userId, abilityName, targetUserId, round, phase);
+            await gameActionHistoryService.InsertAsync(applicationInstanceId, roomId, userId, abilityName, targetUserId, round, phase);
+            return true;
+        }
+        public async Task<bool> PrepareAfterPhaseAsync(string applicationInstanceId, string roomId, string phase, string preparePhase)
+        {
+            var phaseService = phaseServiceFactory.GetPhaseService(preparePhase);
+            var preparedPhase = await phaseService.Prepare(applicationInstanceId, roomId, phase);
+            return true;
         }
     }
 }

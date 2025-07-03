@@ -26,6 +26,7 @@ namespace Ora.GameManaging.Mafia.Model
         public List<AbilityModel> Abilities { get; set; } = [];
         public List<BasePlayerInfo> AlivePlayers { get; set; } = [];
         public List<BasePlayerInfo> DeadPlayers { get; set; } = [];
+        public List<BasePlayerInfo> ActingOn { get; set; } = [];
         public bool HasVideo { get; set; }
     }
 }

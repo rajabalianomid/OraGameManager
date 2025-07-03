@@ -19,6 +19,8 @@ namespace Ora.GameManaging.Mafia.Data
         public int Turn { get; set; }
         public bool Challenge { get; set; }
         public string ACSUserId { get; set; } = default!;
+        public int VoteCount { get; set; } = 0;
+        public bool ActingOnMe { get; set; }
 
         public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
 

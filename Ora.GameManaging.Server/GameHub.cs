@@ -285,7 +285,7 @@ namespace Ora.GameManaging.Server
             // Remove appId from targetUserId if present
             var prefix = $"{appId}:";
             if (targetUserId.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) targetUserId = targetUserId[prefix.Length..]; // Substring from after the prefix
-            if (userId.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))  userId = userId[prefix.Length..]; // Substring from after the prefix
+            if (userId.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) userId = userId[prefix.Length..]; // Substring from after the prefix
 
             await adapterFactory.Do<bool, ActionHistoryModel>(new ActionHistoryModel { ApplicationInstanceId = appId, RoomId = roomId, UserId = userId, AbilityName = ability, Round = foundRoom.Round, Phase = foundRoom.Phase, TargetUserId = targetUserId });
 

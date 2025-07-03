@@ -148,13 +148,16 @@ namespace Ora.GameManaging.Server.Infrastructure
                         var rotatingQueue = await BuildCustomPlayerQueue(room);
 
                         // Start rotating turn for this queue
-                        _turnManager.StartGroupTurnRotating(key, rotatingQueue, room.TurnDurationSeconds);
+                        if (rotatingQueue.Count != 0)
+                            _turnManager.StartGroupTurnRotating(key, rotatingQueue, room.TurnDurationSeconds);
+
 
 
                         isFirstLoop = false;
 
                         // Wait for the turn to finish (implement a mechanism or event to know when to continue)
-                        await WaitForTurnToFinishAsync(key, cts.Token);
+                        if (rotatingQueue.Count != 0)
+                            await WaitForTurnToFinishAsync(key, cts.Token);
                     }
                 }
                 catch (TaskCanceledException)
@@ -264,14 +267,21 @@ namespace Ora.GameManaging.Server.Infrastructure
 
         public async Task<string> GoToNextGamePhase(GameRoom room)
         {
-            var result = await _grpcAdapter.Do<NextPhaseResponseModel, NextPhaseModel>(new NextPhaseModel { currentPhase = room.Phase });
+            var nextPhase = await _grpcAdapter.Do<NextPhaseResponseModel, NextPhaseModel>(new NextPhaseModel { currentPhase = room.Phase });
+            var prepareAfterPhase = await _grpcAdapter.Do<bool, PrepareAfterPhaseModel>(new PrepareAfterPhaseModel
+            {
+                ApplicationInstanceId = room.AppId,
+                RoomId = room.RoomId,
+                Phase = room.Phase,
+                PreparePhase = nextPhase.Name
+            });
             using var scope = _serviceProvider.CreateScope();
             var roomRepo = scope.ServiceProvider.GetRequiredService<GameRoomRepository>();
-            var foundRoom = await roomRepo.UpdatePhaseAsync(room.AppId, room.RoomId, result.Name, result.IsLastPhase);
+            var foundRoom = await roomRepo.UpdatePhaseAsync(room.AppId, room.RoomId, nextPhase.Name, nextPhase.IsLastPhase);
             room.CurrentTurnPlayersId = foundRoom.CurrentTurnPlayer == null ? [] : [.. foundRoom.CurrentTurnPlayer.Split(';')];
             room.Phase = foundRoom.Phase;
             room.Round = foundRoom.Round;
-            return result.Name;
+            return nextPhase.Name;
         }
     }
 }

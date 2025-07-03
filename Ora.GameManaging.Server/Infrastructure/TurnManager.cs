@@ -212,9 +212,7 @@ namespace Ora.GameManaging.Server.Infrastructure
                         await Task.WhenAll(tasks);
 
                         // Flatten state.TargetPlayers to a list of user IDs (strings)
-                        var allTargetUserIds = state.TargetPlayers
-                            .SelectMany(tp => tp is string s ? [s] : tp is List<string> list ? list : Enumerable.Empty<string>())
-                            .ToList();
+                        var allTargetUserIds = room.Players.Select(s => s.Value.UserId);
                         var notInCurrentTurn = allTargetUserIds.Except(userIds).ToList();
 
                         // Move users with IsAlive == false or Success == false to notInCurrentTurn for next tick

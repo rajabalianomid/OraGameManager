@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Ora.GameManaging.Mafia.Data;
 
@@ -11,9 +12,11 @@ using Ora.GameManaging.Mafia.Data;
 namespace Ora.GameManaging.Mafia.Data.Migrations
 {
     [DbContext(typeof(MafiaDbContext))]
-    partial class MafiaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250630143456_AddVoteCount")]
+    partial class AddVoteCount
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -379,9 +382,6 @@ namespace Ora.GameManaging.Mafia.Data.Migrations
 
                     b.Property<int>("AbilityCount")
                         .HasColumnType("int");
-
-                    b.Property<bool>("ActingOnMe")
-                        .HasColumnType("bit");
 
                     b.Property<string>("ApplicationInstanceId")
                         .IsRequired()

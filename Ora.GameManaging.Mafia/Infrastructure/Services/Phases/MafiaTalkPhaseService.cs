@@ -6,20 +6,36 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services.Phases
 {
     public class MafiaTalkPhaseService(MafiaDbContext dbContext) : BasePhaseService(dbContext)
     {
-        public override async Task<PhaseModel> Prepare(string appId, string roomId, string phaseStatus, RoleStatusModel? roleStatus)
+        private readonly MafiaDbContext _dbcontext = dbContext;
+
+        public override async Task<PhaseModel> Prepare(string appId, string roomId, string phaseStatus)
         {
             // TODO: Add Talk phase logic here
-            var result = await base.Prepare(appId, roomId, phaseStatus, null);
+            var result = await base.Prepare(appId, roomId, phaseStatus);
+            return result;
+        }
+        public override async Task<PreparingPhaseModel> Preparing(string appId, string roomId, string phaseStatus, string playerId)
+        {
+            var result = await base.Preparing(appId, roomId, phaseStatus, playerId);
             result.HasVideo = true; // Enable video for Talk phase
             return result;
         }
         public override List<RoleStatusEntity> ProcessTurn(List<RoleStatusEntity> roleStatuses)
         {
-            roleStatuses.Where(w => w.DarkSide).ToList().ForEach(rs =>
+            _dbcontext.RoleStatuses.Where(w => roleStatuses.Any(a => a.UserId == w.UserId))
+                .ToList()
+                .ForEach(rs =>
+                {
+                    rs.VoteCount = 0; // Reset turn for all role statuses
+                });
+            _dbcontext.SaveChanges(); // Save changes to the database
+
+            var turns = roleStatuses.Where(w => w.DarkSide).ToList();
+            turns.ForEach(rs =>
             {
                 rs.Turn = 0;
             });
-            return roleStatuses;
+            return turns;
         }
     }
 }
