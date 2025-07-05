@@ -10,6 +10,7 @@
         public bool IsDayAbility { get; set; }
         public string? RelatedPhase { get; set; }
         public bool IsCard { get; set; }
+        public string? Icon { get; set; }
 
         public required ICollection<GameActionHistoryEntity> GameActions { get; set; }
         public required ICollection<RoleStatusesAbilityEntity> RoleStatusesAbilities { get; set; }

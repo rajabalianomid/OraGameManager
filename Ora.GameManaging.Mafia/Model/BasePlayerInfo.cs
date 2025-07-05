@@ -6,5 +6,6 @@
         public string UserId { get; set; } = string.Empty;
         public string RoomId { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
+        public string LastPartUserId => UserId.Split(':').LastOrDefault() ?? string.Empty;
     }
 }

@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace Ora.GameManaging.Mafia.Infrastructure.Services.Phases
 {
-    public class MafiaTalkPhaseService(MafiaDbContext dbContext) : BasePhaseService(dbContext)
+    public class MafiaTalkPhaseService(MafiaDbContext dbContext) : BasePhaseService(dbContext ?? throw new NullReferenceException("dbContext"))
     {
         private readonly MafiaDbContext _dbcontext = dbContext;
 

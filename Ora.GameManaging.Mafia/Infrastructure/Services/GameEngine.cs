@@ -105,7 +105,7 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
             abilities = abilities?.Where(w => !actionHistories.Any(a => a.AbilityId == w.Id)).ToList();
 
             var phaseService = phaseServiceFactory.GetPhaseService(phase);
-            var preparingPhase = await phaseService.Preparing(model.AppId, model.RoomId, phase, model.TargetPlayerId ?? string.Empty);
+            var preparingPhase = await phaseService.Preparing(model.AppId, model.RoomId, phase, lastPartUserId ?? string.Empty);
 
             var response = new LatestInformationResponseModel();
 
@@ -123,6 +123,7 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
                         Abilities = model.IsYourTurn && abilities != null ? abilities : [],
                         AlivePlayers = [.. model.Players.Where(w => w.IsAlive).Select(s => (BasePlayerInfo)s)],
                         DeadPlayers = [.. model.Players.Where(w => !w.IsAlive).Select(s => (BasePlayerInfo)s)],
+                        ActingOn = [.. model.Players.Where(w => preparingPhase.ActingOn.Any(a => a == w.LastPartUserId)).Select(s => (BasePlayerInfo)s)],
                         HasVideo = preparingPhase.HasVideo,
                     },
                     ExtraInfo = new ExtraInfoDetailsModel

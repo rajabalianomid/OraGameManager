@@ -6,10 +6,22 @@ using System.Threading.Tasks;
 
 namespace Ora.GameManaging.Mafia.Infrastructure.Services.Phases
 {
-    public class FinalVotePhaseService(MafiaDbContext dbContext) : BasePhaseService(dbContext)
+    public class FinalVotePhaseService(MafiaDbContext dbContext) : BasePhaseService(dbContext ?? throw new NullReferenceException("dbContext"))
     {
-        private readonly MafiaDbContext _dbcontext = dbContext;
+        public override async Task<PreparingPhaseModel> Preparing(string appId, string roomId, string phaseStatus, string playerId)
+        {
+            var aliveCount = await dbContext.RoleStatuses
+                .CountAsync(rs => rs.ApplicationInstanceId == appId && rs.RoomId == roomId && rs.Health > 0);
 
+            var roleStatuses = await dbContext.RoleStatuses.Where(w => w.VoteCount >= aliveCount / 2).ToListAsync();
+
+            var result = new PreparingPhaseModel
+            {
+                ActingOn = !roleStatuses.Any(a => a.UserId == playerId) ? [.. roleStatuses.Select(a => a.UserId)] : [],
+                HasVideo = true // Enable video for Talk phase
+            };
+            return result;
+        }
         public override async Task<PhaseModel> Prepare(string appId, string roomId, string phaseStatus)
         {
             // TODO: Add FinalVote phase logic here
@@ -18,7 +30,7 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services.Phases
             {
                 rs.VoteCount = 0;
             });
-            await _dbcontext.SaveChangesAsync(); // Save changes to the database
+            await dbContext.SaveChangesAsync(); // Save changes to the database
             return await base.Prepare(appId, roomId, phaseStatus);
         }
         public override List<RoleStatusEntity> ProcessTurn(List<RoleStatusEntity> roleStatuses)

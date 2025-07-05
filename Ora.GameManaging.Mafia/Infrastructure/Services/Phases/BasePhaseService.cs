@@ -11,7 +11,7 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services.Phases
 {
     public class BasePhaseService(MafiaDbContext dbContext)
     {
-        protected readonly MafiaDbContext DBContext = dbContext;
+        protected readonly MafiaDbContext DBContext = dbContext ?? throw new NullReferenceException("dbContext");
 
         public virtual async Task<PhaseModel> Prepare(string appId, string roomId, string phaseStatus)
         {
@@ -60,10 +60,10 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services.Phases
         }
         public virtual async Task<PreparingPhaseModel> Preparing(string appId, string roomId, string phaseStatus, string playerId)
         {
-            var roleStatuses = await dbContext.RoleStatuses.Where(w => w.ApplicationInstanceId == appId && w.RoomId == roomId).ToListAsync();
+            await Task.CompletedTask; // Placeholder for async method signature
             return new PreparingPhaseModel
             {
-                ActingOn = [.. roleStatuses.Select(a => new RoleStatusModel(a))]
+                ActingOn = []
             };
         }
         public virtual List<RoleStatusEntity> ProcessTurn(List<RoleStatusEntity> roleStatuses)

@@ -85,12 +85,12 @@ function GamePlan() {
                                 <div className="block-content">
                                     {
                                         (communicationStore.turnModel?.data?.alivePlayers || []).map((player, index) => (
-                                            <GamePlayers key={index} Player={player} Died={false} RoomId={roomId ?? ""} />
+                                            <GamePlayers key={index} Player={player} Died={false} RoomId={roomId ?? ""} ActOnMe={false} />
                                         ))
                                     }
                                     {
                                         (communicationStore.turnModel?.data?.deadPlayers || []).map((player, index) => (
-                                            <GamePlayers key={index} Player={player} Died={true} RoomId={roomId ?? ""} />
+                                            <GamePlayers key={index} Player={player} Died={true} RoomId={roomId ?? ""} ActOnMe={false} />
                                         ))
                                     }
                                 </div>
@@ -99,14 +99,25 @@ function GamePlan() {
                         <div id="side-content" className="d-none d-lg-block push">
                             {
                                 [...(communicationStore.turnModel?.data?.deadPlayers || []), ...(communicationStore.turnModel?.data?.deadPlayers || [])].map((player, index) => (
-                                    <GamePlayers key={index} Player={player} Died={communicationStore.turnModel?.data?.deadPlayers.includes(player) ?? false} RoomId={roomId ?? ""} />
+                                    <GamePlayers key={index} Player={player} Died={communicationStore.turnModel?.data?.deadPlayers.includes(player) ?? false} RoomId={roomId ?? ""} ActOnMe={false} />
                                 ))
                             }
                         </div>
                     </div>
                 </div>
                 <div className="col-md-9 col-lg-8 col-xl-10">
-                    <VideoCall></VideoCall>
+                    <div className="content">
+                        <div className="row g-sm">
+                            {
+                                (communicationStore.turnModel?.data?.actingOn || []).map((player, index) => (
+                                    <div key={index} className="col-md-2 col-lg-2 col-xl-2">
+                                        <GamePlayers Player={player} Died={false} RoomId={roomId ?? ""} ActOnMe={true} />
+                                    </div>
+                                ))
+                            }
+                        </div>
+                    </div>
+                    <VideoCall />
                 </div>
             </div>
         </main>
