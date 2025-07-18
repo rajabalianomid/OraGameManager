@@ -12,6 +12,7 @@ namespace Ora.GameManaging.Mafia.Model
         public bool IsDayAbility { get; set; }
         public string? RelatedPhase { get; set; }
         public string? Icon { get; set; }
+        public bool IsCard { get; set; }
 
         public AbilityModel() { }
 
@@ -25,6 +26,7 @@ namespace Ora.GameManaging.Mafia.Model
             IsDayAbility = entity.IsDayAbility;
             RelatedPhase = entity.RelatedPhase;
             Icon = entity.Icon;
+            IsCard = entity.IsCard;
         }
     }
 }

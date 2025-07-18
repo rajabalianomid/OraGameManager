@@ -7,14 +7,14 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services.Phases
 {
     public class LobbyPhaseService(MafiaDbContext dbContext) : BasePhaseService(dbContext ?? throw new NullReferenceException("dbContext"))
     {
-        public override async Task<PhaseModel> Prepare(string appId, string roomId, string phaseStatus)
+        public override async Task<PhaseModel> Prepared(string appId, string roomId, string phaseStatus)
         {
             // TODO: Add Lobby phase logic here
             await ChangeAllActing(appId, roomId, false);
 
-            return await base.Prepare(appId, roomId, phaseStatus);
+            return await base.Prepared(appId, roomId, phaseStatus);
         }
-        public override List<RoleStatusEntity> ProcessTurn(List<RoleStatusEntity> roleStatuses)
+        public override List<RoleStatusEntity> ProcessTurn(List<RoleStatusEntity> roleStatuses, string phase, float round)
         {
             roleStatuses.ForEach(rs =>
             {

@@ -6,10 +6,10 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services.Phases
 {
     public class DefensePhaseService(MafiaDbContext dbContext) : BasePhaseService(dbContext ?? throw new NullReferenceException("dbContext"))
     {
-        public override async Task<PhaseModel> Prepare(string appId, string roomId, string phaseStatus)
+        public override async Task<PhaseModel> Prepared(string appId, string roomId, string phaseStatus)
         {
             // TODO: Add Talk phase logic here
-            var result = await base.Prepare(appId, roomId, phaseStatus);
+            var result = await base.Prepared(appId, roomId, phaseStatus);
             return result;
         }
         public override async Task<PreparingPhaseModel> Preparing(string appId, string roomId, string phaseStatus, string playerId)
@@ -18,7 +18,7 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services.Phases
             result.HasVideo = true; // Enable video for Talk phase
             return result;
         }
-        public override List<RoleStatusEntity> ProcessTurn(List<RoleStatusEntity> roleStatuses)
+        public override List<RoleStatusEntity> ProcessTurn(List<RoleStatusEntity> roleStatuses, string phase, float round)
         {
             roleStatuses = [.. roleStatuses.Where(w => w.VoteCount >= roleStatuses.Count / 2).Select((s, index) => { s.Turn = index; return s; })];
             return roleStatuses;

@@ -6,12 +6,12 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services.Phases
 {
     public class TalkPhaseService(MafiaDbContext dbContext) : BasePhaseService(dbContext ?? throw new NullReferenceException("dbContext"))
     {
-        public override async Task<PhaseModel> Prepare(string appId, string roomId, string phaseStatus)
+        public override async Task<PhaseModel> Prepared(string appId, string roomId, string phaseStatus)
         {
             // TODO: Add Talk phase logic here
             await ChangeAllActing(appId, roomId, false);
 
-            var result = await base.Prepare(appId, roomId, phaseStatus);
+            var result = await base.Prepared(appId, roomId, phaseStatus);
             return result;
         }
         public override async Task<PreparingPhaseModel> Preparing(string appId, string roomId, string phaseStatus, string playerId)

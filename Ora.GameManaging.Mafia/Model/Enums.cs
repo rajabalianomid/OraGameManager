@@ -8,8 +8,9 @@
         Defense = 4,
         FinalVote = 5,
         CardLastChance = 6,
-        MafiaTalk = 7,
-        Action = 8,
+        CardLastChanceReport = 7,
+        MafiaTalk = 8,
+        Action = 9,
     }
     public enum AbilityTypes
     {
@@ -32,5 +33,21 @@
             var nextPhase = ((PhaseStatus)next).ToString();
             return nextPhase;
         }
+        public static string GetPreviousPhaseName(this string phase)
+        {
+            if (!Enum.TryParse<PhaseStatus>(phase, out var currentPhase))
+            {
+                currentPhase = PhaseStatus.Lobby;
+            }
+
+            var values = Enum.GetValues<PhaseStatus>().OrderBy(p => (int)p).ToList();
+            int index = values.IndexOf(currentPhase);
+
+            if (index <= 0)
+                return values.Last().ToString(); // اگه اول لیست بود، برگرد آخرین فاز
+
+            return values[index - 1].ToString();
+        }
+
     }
 }

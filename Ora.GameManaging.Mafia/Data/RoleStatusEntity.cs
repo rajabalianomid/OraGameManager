@@ -20,6 +20,7 @@ namespace Ora.GameManaging.Mafia.Data
         public bool Challenge { get; set; }
         public string ACSUserId { get; set; } = default!;
         public int VoteCount { get; set; } = 0;
+        public int TempVoteCount { get; set; } = 0;
         public bool ActingOnMe { get; set; }
         public bool Lock { get; set; }
 

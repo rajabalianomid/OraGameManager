@@ -94,7 +94,7 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
             // Get only abilities related to the current phase
             var phase = model.Phase;
             var abilities = roleStatus?.Abilities
-                .Where(a => a.RelatedPhase == phase).ToList();
+                .Where(a => a.RelatedPhase == phase && a.IsCard == false).ToList();
 
             List<GameActionHistoryEntity> actionHistories = [];
             if (abilities != null && abilities.Count != 0 && lastPartUserId != null)
@@ -125,6 +125,7 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
                         DeadPlayers = [.. model.Players.Where(w => !w.IsAlive).Select(s => (BasePlayerInfo)s)],
                         ActingOn = [.. model.Players.Where(w => preparingPhase.ActingOn.Any(a => a == w.LastPartUserId)).Select(s => (BasePlayerInfo)s)],
                         HasVideo = preparingPhase.HasVideo,
+                        Cards = preparingPhase.Cards
                     },
                     ExtraInfo = new ExtraInfoDetailsModel
                     {
@@ -238,9 +239,9 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
         {
             return await settingService.RemoveAssignedRoleAsync(applicationInstanceId, roomId, userId);
         }
-        public async Task<List<object>> GetTurnsAsync(string applicationInstanceId, string roomId, string phase)
+        public async Task<List<object>> GetTurnsAsync(string applicationInstanceId, string roomId, string phase, float round)
         {
-            return await roleStatusService.GetTurnsAsync(applicationInstanceId, roomId, phase);
+            return await roleStatusService.GetTurnsAsync(applicationInstanceId, roomId, phase, round);
         }
         public async Task<object> ExtraPlayerInfo(string applicationInstanceId, string roomId, string userId)
         {
@@ -273,7 +274,7 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
         public async Task<bool> PrepareAfterPhaseAsync(string applicationInstanceId, string roomId, string phase, string preparePhase)
         {
             var phaseService = phaseServiceFactory.GetPhaseService(preparePhase);
-            var preparedPhase = await phaseService.Prepare(applicationInstanceId, roomId, phase);
+            var preparedPhase = await phaseService.Prepared(applicationInstanceId, roomId, phase);
             return true;
         }
     }

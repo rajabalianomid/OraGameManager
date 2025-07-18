@@ -6,16 +6,16 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
 {
     public class RoleStatusService(MafiaDbContext dbContext, PhaseServiceFactory phaseServiceFactory)
     {
-        public async Task<List<object>> GetTurnsAsync(string applicationInstanceId, string roomId, string phase)
+        public async Task<List<object>> GetTurnsAsync(string applicationInstanceId, string roomId, string phase, float round)
         {
             var phaseService = phaseServiceFactory.GetPhaseService(phase) ?? throw new InvalidOperationException($"Phase service for '{phase}' not found.");
 
             // Fetch all role statuses for the room
             var roleStatuses = await dbContext.RoleStatuses
-                .Where(rs => rs.ApplicationInstanceId == applicationInstanceId && rs.RoomId == roomId)
+                .Where(rs => rs.ApplicationInstanceId == applicationInstanceId && rs.RoomId == roomId && rs.Health > 0)
                 .ToListAsync();
 
-            roleStatuses = phaseService.ProcessTurn(roleStatuses);
+            roleStatuses = phaseService.ProcessTurn(roleStatuses, phase, round);
 
             // Group by Turn value
             var grouped = roleStatuses

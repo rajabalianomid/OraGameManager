@@ -8,5 +8,6 @@
         public required string ApplicationInstanceId { get; set; }
         public required string RoomId { get; set; }
         public required string Phase { get; set; }
+        public required float Round { get; set; }
     }
 }

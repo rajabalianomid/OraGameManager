@@ -48,7 +48,12 @@ function GamePlayers(props: GamePlayersProps) {
             return (
                 communicationStore.turnModel?.data?.abilities || []).map((ability, idx) => (
                     <div>
-                        <a className="block text-center bg-primary" href="#">
+                        <a className="block text-center bg-primary" onClick={() =>
+                            communicationStore.doAction(
+                                AppConfig.appId,
+                                props.RoomId,
+                                communicationStore.turnModel?.data?.userId ?? '', ability.name, props.Player.userId
+                            )}>
                             <div className="block-content block-content-full ratio ratio-16x9">
                                 <div className="d-flex justify-content-center align-items-center">
                                     <div>
@@ -72,33 +77,41 @@ function GamePlayers(props: GamePlayersProps) {
                 ));
         }
 
-        return (
-            <a
-                href="#"
-                className="block block-link-pop text-center"
-                onClick={e => {
-                    e.preventDefault();
-                    setShowAbilities(true);
-                }}
-            >
-                <div className="block block-link-pop bg-xpro text-white h-100 mb-0">
-                    <div className="block-content text-center py-5">
-                        <p className="mb-4">
-                            <i className="fa fa-user-check fa-3x"></i>
-                        </p>
-                        <p className="fs-4 fw-bold mb-0">
-                            {props.Player.name.length > 15
-                                ? (
-                                    <span title={props.Player.name}>
-                                        {props.Player.name.slice(0, 15) + '...'}
-                                    </span>
-                                )
-                                : props.Player.name}
-                        </p>
+        if (
+            communicationStore.turnModel?.data?.abilities &&
+            communicationStore.turnModel.data.abilities.length > 0
+        ) {
+            return (
+                <a
+                    href="#"
+                    className="block block-link-pop text-center"
+                    onClick={e => {
+                        e.preventDefault();
+                        setShowAbilities(true);
+                    }}
+                >
+                    <div className="block block-link-pop bg-xpro text-white h-100 mb-0">
+                        <div className="block-content text-center py-5">
+                            <p className="mb-4">
+                                <i className="fa fa-user-check fa-3x"></i>
+                            </p>
+                            <p className="fs-4 fw-bold mb-0">
+                                {props.Player.name.length > 15
+                                    ? (
+                                        <span title={props.Player.name}>
+                                            {props.Player.name.slice(0, 15) + '...'}
+                                        </span>
+                                    )
+                                    : props.Player.name}
+                            </p>
+                        </div>
                     </div>
-                </div>
-            </a>
-        );
+                </a>
+            );
+        } else {
+            return null; // or fallback content if needed
+        }
+
     }
 
 }
