@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.SignalR;
+using Newtonsoft.Json.Linq;
 using Ora.GameManaging.Server.Data;
 using Ora.GameManaging.Server.Data.Migrations;
 using Ora.GameManaging.Server.Data.Repositories;
@@ -212,7 +213,7 @@ namespace Ora.GameManaging.Server.Infrastructure
                         await Task.WhenAll(tasks);
 
                         // Flatten state.TargetPlayers to a list of user IDs (strings)
-                        var allTargetUserIds = room.Players.Select(s => s.Value.UserId);
+                        var allTargetUserIds = room.Players.Select(s => s.Value.UserId).ToList();
                         var notInCurrentTurn = allTargetUserIds.Except(userIds).ToList();
 
                         // Move users with IsAlive == false or Success == false to notInCurrentTurn for next tick
@@ -224,8 +225,9 @@ namespace Ora.GameManaging.Server.Infrastructure
                         }
 
                         // If no users alive in this turn, break
-                        if (userIds.Count == 0)
-                            break;
+                        //if (userIds.Count == 0)
+                        //    break;
+                        await FreezGame(300, [.. room.Players.Select(s => s.Value.UserId)], state.TokenSource.Token);
 
                         var tasksnotInCurrentTurn = notInCurrentTurn
                             .Select(userId => HandlePlayerTurnInfoAsync(room, state, userIds, idx, i, userId, false))
@@ -271,6 +273,28 @@ namespace Ora.GameManaging.Server.Infrastructure
                         Console.WriteLine(inner);
                 }
             }
+        }
+
+        private async Task FreezGame(int freezeSeconds, List<string> players, CancellationToken token)
+        {
+            if (players.Count != 0)
+                return;
+
+            int elapsed = 0;
+
+            while (elapsed < freezeSeconds)
+            {
+                await Task.Delay(5000, token);
+                elapsed += 5;
+
+                if (players.Count != 0)
+                {
+                    Console.WriteLine("A player reconnected during freeze. Resuming game.");
+                    return;
+                }
+            }
+            //TODO: Game Stop
+            Console.WriteLine("No players reconnected after 5 minutes. Stopping game.");
         }
 
         // Helper to handle player turn info

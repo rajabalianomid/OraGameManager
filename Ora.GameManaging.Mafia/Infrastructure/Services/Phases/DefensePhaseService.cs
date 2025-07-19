@@ -18,8 +18,9 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services.Phases
             result.HasVideo = true; // Enable video for Talk phase
             return result;
         }
-        public override List<RoleStatusEntity> ProcessTurn(List<RoleStatusEntity> roleStatuses, string phase, float round)
+        public override async Task<List<RoleStatusEntity>> ProcessTurn(List<RoleStatusEntity> roleStatuses, string phase, float round)
         {
+            await Task.CompletedTask;
             roleStatuses = [.. roleStatuses.Where(w => w.VoteCount >= roleStatuses.Count / 2).Select((s, index) => { s.Turn = index; return s; })];
             return roleStatuses;
         }

@@ -59,5 +59,30 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
             dbContext.GameActionHistories.Add(action);
             await dbContext.SaveChangesAsync();
         }
+        public async Task UpdateAsync(string applicationInstanceId, string roomId, string userId, string abilityName, string targetUserId, float round, string phase)
+        {
+            // Create a new GameActionHistory entry
+            var foundAbility = await dbContext.AbilityEntities.Include(i => i.RoleStatusesAbilities).ThenInclude(a => a.RoleStatus)
+                .FirstOrDefaultAsync(a => a.Name == abilityName && a.RelatedPhase == phase && a.RoleStatusesAbilities.Any(a => a.RoleStatus.UserId == userId));
+
+            if (foundAbility is null)
+            {
+                throw new Exception($"Ability '{abilityName}' not found for user '{userId}' in phase '{phase}'.");
+            }
+            // Check if a similar GameActionHistory already exists
+            var existingAction = await dbContext.GameActionHistories.FirstOrDefaultAsync(a =>
+                a.ApplicationInstanceId == applicationInstanceId &&
+                a.RoomId == roomId &&
+                a.ActorUserId == userId &&
+                a.AbilityId == foundAbility.Id &&
+                a.Round == round &&
+                a.CurrentPhase == phase);
+
+            if (existingAction != null)
+            {
+                existingAction.TargetUserId = targetUserId;
+            }
+            await dbContext.SaveChangesAsync();
+        }
     }
 }

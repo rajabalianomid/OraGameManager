@@ -40,8 +40,9 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services.Phases
                 ActingOn = []
             };
         }
-        public virtual List<RoleStatusEntity> ProcessTurn(List<RoleStatusEntity> roleStatuses, string phase, float round)
+        public virtual async Task<List<RoleStatusEntity>> ProcessTurn(List<RoleStatusEntity> roleStatuses, string phase, float round)
         {
+            await Task.CompletedTask; // Placeholder for async method signature
             return roleStatuses;
         }
 

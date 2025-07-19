@@ -15,7 +15,7 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
                 .Where(rs => rs.ApplicationInstanceId == applicationInstanceId && rs.RoomId == roomId && rs.Health > 0)
                 .ToListAsync();
 
-            roleStatuses = phaseService.ProcessTurn(roleStatuses, phase, round);
+            roleStatuses = await phaseService.ProcessTurn(roleStatuses, phase, round);
 
             // Group by Turn value
             var grouped = roleStatuses

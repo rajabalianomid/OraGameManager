@@ -20,7 +20,7 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services.Phases
             result.HasVideo = true; // Enable video for Talk phase
             return result;
         }
-        public override List<RoleStatusEntity> ProcessTurn(List<RoleStatusEntity> roleStatuses, string phase, float round)
+        public override async Task<List<RoleStatusEntity>> ProcessTurn(List<RoleStatusEntity> roleStatuses, string phase, float round)
         {
             _dbcontext.RoleStatuses.Where(w => roleStatuses.Any(a => a.UserId == w.UserId))
                 .ToList()
@@ -28,7 +28,7 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services.Phases
                 {
                     rs.VoteCount = 0; // Reset turn for all role statuses
                 });
-            _dbcontext.SaveChanges(); // Save changes to the database
+            await _dbcontext.SaveChangesAsync(); // Save changes to the database
 
             var turns = roleStatuses.Where(w => w.DarkSide).ToList();
             turns.ForEach(rs =>

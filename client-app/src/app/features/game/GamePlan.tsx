@@ -15,6 +15,7 @@ function GamePlan() {
     const { initializeConnection, waitForConnection, disconnectConnection } = communicationStore;
     const [playersCloseBox, setPlayersCloseBox] = useState<boolean>();
     const [playersFullScreen, setPlayersFullScreen] = useState<boolean>();
+    const cards = communicationStore.turnModel?.data?.cards || [];
 
     useEffect(() => {
         mainStore.setWithoutSlider(true);
@@ -34,7 +35,6 @@ function GamePlan() {
                 model = { id: roomId };
             }
             try {
-                debugger;
                 const user = profileStore.logedInUSer();
                 if (user?.userName) {
                     var isJoined = await communicationStore.addUserToRoom(
@@ -112,6 +112,13 @@ function GamePlan() {
                                 (communicationStore.turnModel?.data?.actingOn || []).map((player, index) => (
                                     <div key={index} className="col-md-2 col-lg-2 col-xl-2">
                                         <GamePlayers Player={player} Died={false} RoomId={roomId ?? ""} ActOnMe={true} />
+                                    </div>
+                                ))
+                            }
+                            {
+                                (communicationStore.turnModel?.data?.cards || []).map((card, index) => (
+                                    <div key={index} className="col-md-2 col-lg-2 col-xl-2">
+                                        <GamePlayers Card={card} ActOnMe={true} />
                                     </div>
                                 ))
                             }

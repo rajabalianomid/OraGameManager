@@ -33,6 +33,8 @@ builder.Services.AddScoped<TalkPhaseService>();
 builder.Services.AddScoped<VotePhaseService>();
 builder.Services.AddScoped<DefensePhaseService>();
 builder.Services.AddScoped<FinalVotePhaseService>();
+builder.Services.AddScoped<CardLastChancePhaseService>();
+builder.Services.AddScoped<CardLastReportChancePhaseService>();
 builder.Services.AddScoped<MafiaTalkPhaseService>();
 builder.Services.AddScoped<ActionPhaseService>();
 builder.Services.AddScoped<GameActionHistoryService>();

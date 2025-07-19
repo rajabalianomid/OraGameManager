@@ -123,9 +123,9 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
                         Abilities = model.IsYourTurn && abilities != null ? abilities : [],
                         AlivePlayers = [.. model.Players.Where(w => w.IsAlive).Select(s => (BasePlayerInfo)s)],
                         DeadPlayers = [.. model.Players.Where(w => !w.IsAlive).Select(s => (BasePlayerInfo)s)],
-                        ActingOn = [.. model.Players.Where(w => preparingPhase.ActingOn.Any(a => a == w.LastPartUserId)).Select(s => (BasePlayerInfo)s)],
+                        ActingOn = model.IsYourTurn ? [.. model.Players.Where(w => preparingPhase.ActingOn.Any(a => a == w.LastPartUserId)).Select(s => (BasePlayerInfo)s)] : [],
                         HasVideo = preparingPhase.HasVideo,
-                        Cards = preparingPhase.Cards
+                        Cards = model.IsYourTurn ? preparingPhase.Cards : []
                     },
                     ExtraInfo = new ExtraInfoDetailsModel
                     {
@@ -269,6 +269,11 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
         public async Task<bool> DoActionAsync(string applicationInstanceId, string roomId, string userId, string abilityName, string targetUserId, float round, string phase)
         {
             await gameActionHistoryService.InsertAsync(applicationInstanceId, roomId, userId, abilityName, targetUserId, round, phase);
+            return true;
+        }
+        public async Task<bool> DoActionCommitAsync(string applicationInstanceId, string roomId, string userId, string abilityName, string targetUserId, float round, string phase)
+        {
+            await gameActionHistoryService.UpdateAsync(applicationInstanceId, roomId, userId, abilityName, targetUserId, round, phase);
             return true;
         }
         public async Task<bool> PrepareAfterPhaseAsync(string applicationInstanceId, string roomId, string phase, string preparePhase)

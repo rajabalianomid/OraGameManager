@@ -284,10 +284,38 @@ namespace Ora.GameManaging.Server
 
             // Remove appId from targetUserId if present
             var prefix = $"{appId}:";
-            if (targetUserId.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) targetUserId = targetUserId[prefix.Length..]; // Substring from after the prefix
+            if (!string.IsNullOrEmpty(targetUserId))
+            {
+                if (targetUserId.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) targetUserId = targetUserId[prefix.Length..]; // Substring from after the prefix
+            }
             if (userId.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) userId = userId[prefix.Length..]; // Substring from after the prefix
 
             await adapterFactory.Do<bool, ActionHistoryModel>(new ActionHistoryModel { ApplicationInstanceId = appId, RoomId = roomId, UserId = userId, AbilityName = ability, Round = foundRoom.Round, Phase = foundRoom.Phase, TargetUserId = targetUserId });
+
+            return true;
+        }
+        public async Task<bool> CommitAction(string appId, string roomId, string userId, string ability, string targetUserId)
+        {
+            var key = $"{appId}:{roomId}";
+            if (!Rooms.ContainsKey(key))
+                return false;
+
+            var foundRoom = await roomRepo.GetByRoomIdAsync(appId, roomId);
+            if (foundRoom == null)
+            {
+                await Clients.Caller.SendAsync("Error", $"Room {roomId} does not exist.");
+                return false;
+            }
+
+            // Remove appId from targetUserId if present
+            var prefix = $"{appId}:";
+            if (!string.IsNullOrEmpty(targetUserId))
+            {
+                if (targetUserId.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) targetUserId = targetUserId[prefix.Length..]; // Substring from after the prefix
+            }
+            if (userId.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) userId = userId[prefix.Length..]; // Substring from after the prefix
+
+            await adapterFactory.Do<bool, ActionHistoryCommitModel>(new ActionHistoryCommitModel { ApplicationInstanceId = appId, RoomId = roomId, UserId = userId, AbilityName = ability, Round = foundRoom.Round, Phase = foundRoom.Phase, TargetUserId = targetUserId });
 
             return true;
         }

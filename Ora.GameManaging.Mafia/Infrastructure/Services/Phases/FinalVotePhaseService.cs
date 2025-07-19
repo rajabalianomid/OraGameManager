@@ -34,39 +34,21 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services.Phases
             await dbContext.SaveChangesAsync(); // Save changes to the database
             return await base.Prepared(appId, roomId, phaseStatus);
         }
-        public override List<RoleStatusEntity> ProcessTurn(List<RoleStatusEntity> roleStatuses, string phase, float round)
+        public override async Task<List<RoleStatusEntity>> ProcessTurn(List<RoleStatusEntity> roleStatuses, string phase, float round)
         {
-            //if (roleStatuses == null || !roleStatuses.Any())
-            //{
-            //    throw new ArgumentException("Role statuses cannot be null or empty.", nameof(roleStatuses));
-            //}
-
-            //var previousPhase = phase.GetPreviousPhaseName();
-
-            //var actionHistories = dbContext.GameActionHistories.Where(ga => ga.ApplicationInstanceId == roleStatuses.First().ApplicationInstanceId &&
-            //ga.RoomId == roleStatuses.First().RoomId &&
-            //ga.Phase == previousPhase && ga.Round == round).ToList();
-
-            //actionHistories.GroupBy(g => g.TargetUserId).ToList().ForEach(g =>
-            //{
-            //    var targetUserId = g.Key;
-            //    var voteCount = g.Count();
-            //    var roleStatus = roleStatuses.FirstOrDefault(rs => rs.UserId == targetUserId);
-            //    if (roleStatus != null)
-            //    {
-            //        roleStatus.VoteCount += voteCount;
-            //    }
-            //});
-
-
             List<RoleStatusEntity> result = new();
             var votedRoleStatuses = roleStatuses.Where(w => w.TempVoteCount >= roleStatuses.Count / 2).Select((s, index) => { s.Turn = index; return s.UserId; }).ToList();
             if (votedRoleStatuses.Count > 0)
             {
                 result = [.. roleStatuses.Where(w => !votedRoleStatuses.Any(a => a == w.UserId))];
+                result.ForEach(rs =>
+                {
+                    rs.Turn = 0;
+                });
                 //DBContext.RoleStatuses.Where(w => result.Any(a => a.UserId == w.UserId))
                 //    .ExecuteUpdateAsync(setters => setters.SetProperty(rs => rs.ActingOnMe, true));
             }
+            await Task.CompletedTask;
             return result;
         }
     }
