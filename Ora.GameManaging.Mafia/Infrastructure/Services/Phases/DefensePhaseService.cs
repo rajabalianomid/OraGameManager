@@ -20,9 +20,9 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services.Phases
         }
         public override async Task<List<RoleStatusEntity>> ProcessTurn(List<RoleStatusEntity> roleStatuses, string phase, float round)
         {
+            List<RoleStatusEntity> result = [.. roleStatuses.Where(w => w.VoteCount >= (int)Math.Ceiling(roleStatuses.Count / 2.0)).Select((s, index) => { s.Turn = index; return s; })];
             await Task.CompletedTask;
-            roleStatuses = [.. roleStatuses.Where(w => w.VoteCount >= roleStatuses.Count / 2).Select((s, index) => { s.Turn = index; return s; })];
-            return roleStatuses;
+            return result;
         }
     }
 }

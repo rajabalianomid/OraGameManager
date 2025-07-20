@@ -4,7 +4,7 @@ import NotFound from '../features/errors/NotFound';
 import Login from '../features/profile/Login';
 import Room from '../features/game/Room';
 import MainContainer from '../features/MainContainer';
-import GamePlan from '../features/game/GamePlan';
+import Playground from '../features/game/GamePlan/Playground';
 import VideoCall from '../features/voip/VideoCall';
 import PrivateRoute from './PrivateRoute';
 
@@ -16,7 +16,7 @@ export const routes: RouteObject[] = [
             { index: true, element: (<PrivateRoute><MainContainer /></PrivateRoute>) },
             { path: '/index', element: (<PrivateRoute><MainContainer /></PrivateRoute>) },
             { path: '/room', element: (<PrivateRoute><Room /></PrivateRoute>) },
-            { path: '/gameplan/:roomId', element: (<PrivateRoute><GamePlan /></PrivateRoute>) },
+            { path: '/gameplan/:roomId', element: (<PrivateRoute><Playground /></PrivateRoute>) },
             { path: '/videocall', element: (<PrivateRoute><VideoCall /></PrivateRoute>) },
             { path: 'not-found', element: (<PrivateRoute><NotFound /></PrivateRoute>) },
             { path: '*', element: (<PrivateRoute><NotFound /></PrivateRoute>) }
