@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.VisualBasic;
 using Ora.GameManaging.Mafia.Data;
 using Ora.GameManaging.Mafia.Model;
 using Ora.GameManaging.Mafia.Model.Mapping;
@@ -24,36 +25,52 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services.Phases
             var alivePlayers = await dbContext.RoleStatuses
                 .Where(rs => rs.ApplicationInstanceId == appId && rs.RoomId == roomId && rs.Health > 0).ToListAsync();
 
-            var actionHistory = dbContext.GameActionHistories.Where(w => w.ApplicationInstanceId == appId &&
+            var actionHistory = dbContext.GameActionHistories.Include(i => i.Ability).Where(w => w.ApplicationInstanceId == appId &&
             w.RoomId == roomId &&
-            w.Phase == phaseStatus &&
+            w.CurrentPhase == phaseStatus &&
+            w.ActorUserId == playerId &&
             w.IsProcessed == false).FirstOrDefault();
+
+            var oldActionHistoryCards = dbContext.GameActionHistories.Include(i => i.Ability)
+                .Where(w => w.ApplicationInstanceId == appId && w.RoomId == roomId && w.Ability.IsCard)
+                .Select(s => s.Ability.Name).ToList();
 
             var cards = await dbContext.GeneralAttributes
                 .Where(gc => gc.ApplicationInstanceId == appId && gc.EntityId == roomId && gc.EntityName == EntityKeys.RoomCard)
+                .OrderBy(x => x.Id)
                 .ToListAsync();
+
+            List<(GeneralAttributeEntity Value, int Index)> foundRemainingCards = [.. cards.Select((s, index) => new { value = s, index })
+                    .Where(w => !oldActionHistoryCards.Contains(w.value.Key))
+                    .Select(s => (s.value, Index: s.index + 1))];
+
 
             var cardsModel = new List<LastCardChanceModel>();
             if (actionHistory == null)
             {
-                cardsModel = [.. cards.Select((c, index) => new LastCardChanceModel
+                cardsModel = [.. foundRemainingCards.Select(s => new LastCardChanceModel
                 {
-                    Name = $"Card {(index+1)}" ,
+                    Id = s.Value.Id,
+                    Name = $"Card {(s.Index)}",
                     Description = string.Empty,
                     Icon = string.Empty
                 })];
             }
             else if (actionHistory != null && actionHistory.TargetUserId == string.Empty)
             {
-                cardsModel = await dbContext.AbilityEntities
-                    .Where(w => cards.Any(a => a.Key == w.Name) && (actionHistory == null || w.Id == actionHistory.AbilityId))
+                var cardNames = cards.Select(s => s.Key).ToList();
+
+                cardsModel = [.. (await dbContext.AbilityEntities
+                    .Where(w => cardNames.Any(a => a == w.Name) && (actionHistory == null || w.Id == actionHistory.AbilityId)).ToListAsync())
                     .Select((c, index) => new LastCardChanceModel
                     {
+                        Id = c.Id,
                         Name = c.Name,
                         Description = c.Description,
                         Icon = c.Icon,
-                        SelfAct = c.SelfAct ?? false
-                    }).ToListAsync();
+                        SelfAct = c.SelfAct ?? false,
+                        ShowFront = true
+                    })];
             }
 
 
@@ -61,10 +78,10 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services.Phases
 
             var result = new PreparingPhaseModel
             {
-                ActingOn = actionHistory == null || actionHistory.TargetUserId == string.Empty ? [] : [.. alivePlayers.Where(w => cardsModel.Any(a => a.SelfAct) ? w.UserId == playerId : w.UserId != playerId).Select(s => s.UserId)],
+                ActingOn = actionHistory != null && actionHistory.TargetUserId == string.Empty ? [.. alivePlayers.Where(w => cardsModel.Any(a => a.SelfAct) ? w.UserId == playerId : w.UserId != playerId).Select(s => s.UserId)] : [],
                 HasVideo = false,
-                Information = cardsModel.Any() && (actionHistory != null && actionHistory.TargetUserId != string.Empty) ? cardsModel.Select(s => $"You selected: {s.Name} card that means: {s.Description}").FirstOrDefault() ?? string.Empty : string.Empty,
-                Cards = actionHistory == null ? cardsModel : []
+                Information = cardsModel.Count != 0 && (actionHistory != null && actionHistory.TargetUserId != string.Empty) ? cardsModel.Select(s => $"You selected: {s.Name} card that means: {s.Description}").FirstOrDefault() ?? string.Empty : string.Empty,
+                Cards = cardsModel
             };
             return result;
         }

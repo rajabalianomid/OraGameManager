@@ -186,7 +186,12 @@ export default class CommunicationStore {
             return;
         await this.connection?.invoke<ActionModelResponse>("DoAction", appId, roomId, userId, ability, targetUserId);
     }
-
+    async commitAction(appId: string, roomId: string, userId: string, ability: string, targetUserId: string) {
+        debugger;
+        if (roomId === '' || userId === '')
+            return;
+        await this.connection?.invoke<ActionModelResponse>("CommitAction", appId, roomId, userId, ability, targetUserId);
+    }
     //#region Video Call
 
     getUser = async () => {

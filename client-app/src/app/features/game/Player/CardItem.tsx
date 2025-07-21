@@ -2,7 +2,7 @@ import { LastCardChanceModel } from "../../../models/LastCardChanceModel";
 
 interface CardItemProps {
     card: LastCardChanceModel;
-    onClick?: () => void;
+    onClick: () => void;
 }
 
 export function CardItem({ card, onClick }: CardItemProps) {
@@ -12,7 +12,7 @@ export function CardItem({ card, onClick }: CardItemProps) {
             className="block block-link-pop text-center"
             onClick={(e) => {
                 e.preventDefault();
-                onClick?.();
+                onClick();
             }}
         >
             <div className="block block-link-pop bg-xpro text-white h-100 mb-0">

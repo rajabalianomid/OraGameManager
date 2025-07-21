@@ -44,7 +44,7 @@
             int index = values.IndexOf(currentPhase);
 
             if (index <= 0)
-                return values.Last().ToString(); // اگه اول لیست بود، برگرد آخرین فاز
+                return values.Last().ToString();
 
             return values[index - 1].ToString();
         }
