@@ -45,7 +45,6 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services.Phases
             await Task.CompletedTask; // Placeholder for async method signature
             return roleStatuses;
         }
-
         protected async Task<List<GameActionHistoryEntity>> GetNotProcessedActions(string appId, string roomId) =>
             await dbContext.GameActionHistories
             .Include(ga => ga.Ability)

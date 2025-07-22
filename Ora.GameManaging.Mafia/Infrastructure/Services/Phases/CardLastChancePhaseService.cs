@@ -17,6 +17,7 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services.Phases
                 rs.TempVoteCount = rs.VoteCount; // Store the current vote count temporarily
                 rs.VoteCount = 0;
             });
+            await dbContext.SaveChangesAsync(); // Save changes to the database
             var result = await base.Prepared(appId, roomId, phaseStatus);
             return result;
         }
@@ -88,7 +89,7 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services.Phases
 
         public override async Task<List<RoleStatusEntity>> ProcessTurn(List<RoleStatusEntity> roleStatuses, string phase, float round)
         {
-            var result = roleStatuses.GroupBy(g => g.VoteCount).OrderByDescending(o => o.Key).Take(1).SelectMany((sm, index) =>
+            var result = roleStatuses.Where(w => w.VoteCount > 0).GroupBy(g => g.VoteCount).OrderByDescending(o => o.Key).Take(1).SelectMany((sm, index) =>
             {
                 _ = sm.Select(s =>
                 {
