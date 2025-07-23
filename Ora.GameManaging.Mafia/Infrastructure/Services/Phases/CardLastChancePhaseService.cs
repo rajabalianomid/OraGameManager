@@ -89,17 +89,25 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services.Phases
 
         public override async Task<List<RoleStatusEntity>> ProcessTurn(List<RoleStatusEntity> roleStatuses, string phase, float round)
         {
-            var result = roleStatuses.Where(w => w.VoteCount > 0).GroupBy(g => g.VoteCount).OrderByDescending(o => o.Key).Take(1).SelectMany((sm, index) =>
+            if (roleStatuses.Any(a => a.TempVoteCount > 0))
             {
-                _ = sm.Select(s =>
+                var topCandidates = roleStatuses.GroupBy(g => g.TempVoteCount).OrderByDescending(o => o.Key).First().ToList();
+                var random = new Random();
+                var player = topCandidates[random.Next(topCandidates.Count)];
+                if (!player.Selected)
+                {
+                    player.Selected = true;
+                    await dbContext.SaveChangesAsync();
+                }
+                var result = roleStatuses.Where(w => w.UserId == player.UserId).Select((s, index) =>
                 {
                     s.Turn = index;
                     return s;
-                });
-                return sm;
-            }).ToList();
-            await Task.CompletedTask;
-            return result;
+                }).ToList();
+
+                return result;
+            }
+            return [];
         }
     }
 }

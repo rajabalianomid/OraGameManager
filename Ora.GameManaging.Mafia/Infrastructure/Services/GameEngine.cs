@@ -37,14 +37,14 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
             //This Part is for filling the RoleStatus from Mafia rolestatuse table for each player that is comming from the request model
             var statusLookup = allRoleStatuses
                 .ToDictionary(
-                    rs => (rs.UserId, rs.RoleName),
+                    rs => rs.UserId,
                     rs => rs
                 );
 
             foreach (var player in model.Players)
             {
                 var userIdPart = player.UserId.Split(':').Last();
-                if (statusLookup.TryGetValue((userIdPart, player.Role), out var statusEntity))
+                if (statusLookup.TryGetValue(userIdPart, out var statusEntity))
                 {
                     player.RoleStatus = new RoleStatusModel
                     {

@@ -294,6 +294,7 @@ namespace Ora.GameManaging.Server
 
             return true;
         }
+
         public async Task<bool> CommitAction(string appId, string roomId, string userId, string ability, string targetUserId)
         {
             var key = $"{appId}:{roomId}";
