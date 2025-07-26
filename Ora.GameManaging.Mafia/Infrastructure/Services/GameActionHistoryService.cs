@@ -38,7 +38,7 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
                 isCard = true;
             }
 
-            var foundAbility = await dbContext.AbilityEntities.Include(i => i.RoleStatusesAbilities).ThenInclude(a => a.RoleStatus)
+            var foundAbility = await dbContext.AbilityEntities
                                .FirstOrDefaultAsync(a => a.Name == abilityName && a.RelatedPhase == phase && (isCard == true || a.RoleStatusesAbilities.Any(a => a.RoleStatus.UserId == userId)))
                                ?? throw new Exception($"Ability '{abilityName}' not found for user '{userId}' in phase '{phase}'.");
 
@@ -69,6 +69,7 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
                 ActionTime = DateTime.UtcNow,
                 Phase = phase.GetNextPhaseName(),
                 CurrentPhase = phase,
+                Force = foundAbility.Force,
                 ActorRole = actorRole ?? "Unknown",
             };
             // Add the action to the database
@@ -90,6 +91,27 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
                 throw new Exception($"Ability '{abilityName}' not found for user '{userId}' in phase '{phase}'.");
             }
 
+            var abilities = await dbContext.AbilityEntities.Where(w => w.Pattern.StartsWith(foundActionHistory.Ability.Pattern) && w.ParentId != null).ToListAsync();
+            foreach (var ability in abilities)
+            {
+                var action = new GameActionHistoryEntity
+                {
+                    ApplicationInstanceId = applicationInstanceId,
+                    RoomId = roomId,
+                    ActorUserId = userId,
+                    TargetUserId = targetUserId,
+                    AbilityId = ability.Id,
+                    Round = round,
+                    IsProcessed = false,
+                    ActionTime = DateTime.UtcNow,
+                    Phase = phase.GetNextPhaseName(),
+                    CurrentPhase = phase,
+                    Force = ability.Force,
+                    ActorRole = foundActionHistory.ActorRole ?? "Unknown",
+                };
+                // Add the action to the database
+                dbContext.GameActionHistories.Add(action);
+            }
             foundActionHistory.TargetUserId = targetUserId;
 
             await dbContext.SaveChangesAsync();

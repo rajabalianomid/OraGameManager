@@ -8,19 +8,22 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services.Phases
 {
     public class FinalVotePhaseService(MafiaDbContext dbContext) : BasePhaseService(dbContext ?? throw new NullReferenceException("dbContext"))
     {
-        public override async Task<PreparingPhaseModel> Preparing(string appId, string roomId, string phaseStatus, string playerId)
+        public override async Task<PreparingPhaseModel> Preparing(string appId, string roomId, string phaseStatus, string playerId, int round, bool isTurn)
         {
-            var aliveCount = await dbContext.RoleStatuses
-                .CountAsync(rs => rs.ApplicationInstanceId == appId && rs.RoomId == roomId && rs.Health > 0);
+            var model = await base.Preparing(appId, roomId, phaseStatus, playerId, round, isTurn);
 
-            var roleStatuses = await dbContext.RoleStatuses.Where(w => w.TempVoteCount >= aliveCount / 2).ToListAsync();
-
-            var result = new PreparingPhaseModel
+            if (isTurn)
             {
-                ActingOn = [.. roleStatuses.Select(a => a.UserId)],
-                HasVideo = false // Enable video for Talk phase
-            };
-            return result;
+                var aliveCount = await dbContext.RoleStatuses
+                    .CountAsync(rs => rs.ApplicationInstanceId == appId && rs.RoomId == roomId && rs.Health > 0);
+
+                var roleStatuses = await dbContext.RoleStatuses.Where(w => w.TempVoteCount >= aliveCount / 2).ToListAsync();
+
+                model.ActingOn = [.. roleStatuses.Select(a => a.UserId)];
+                model.HasVideo = false; // Enable video for Talk phase
+            }
+
+            return model;
         }
         public override async Task<PhaseModel> Prepared(string appId, string roomId, string phaseStatus)
         {

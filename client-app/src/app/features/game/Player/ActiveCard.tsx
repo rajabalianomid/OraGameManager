@@ -48,15 +48,18 @@ export function ActiveCard({ cards, players, roomId }: ActiveCardProps) {
             </div>
         );
     }
+    console.log("cards", cards);
     return (
-        <div className="row g-sm">
-            {
-                cards.map((card, i) => (
-                    <div key={`card-${i}`} className="col-md-2 col-lg-2 col-xl-2">
-                        <CardItem card={card} onClick={() => handleSelectCard(card.name)} />
-                    </div>
-                ))
-            }
+        <div>
+            <div className="row g-sm">
+                {
+                    cards.map((card, i) => (
+                        <div key={`card-${i}`} className="col-md-2 col-lg-2 col-xl-2">
+                            <CardItem card={card} onClick={() => handleSelectCard(card.name)} />
+                        </div>
+                    ))
+                }
+            </div>
         </div>
     );
 }

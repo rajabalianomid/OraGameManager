@@ -13,6 +13,7 @@ export interface LatestInformationModel {
     alivePlayers: PlayerModel[];
     deadPlayers: PlayerModel[];
     cards: LastCardChanceModel[];
+    roles: string[];
     actingOn: PlayerModel[];
     hasVideo: boolean;
 }

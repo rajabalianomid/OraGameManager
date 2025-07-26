@@ -184,6 +184,7 @@ namespace Ora.GameManaging.Server.Infrastructure
 
                     for (int i = seconds; i >= 0; i--)
                     {
+                        var iterationStart = DateTime.UtcNow;
 
                         // Build userIds for this group, but only include users who are still in the room
                         List<string> userIds = state.TargetPlayers[idx] switch
@@ -248,12 +249,17 @@ namespace Ora.GameManaging.Server.Infrastructure
                         }
                         else
                         {
-                            await Task.Delay(1000, state.TokenSource.Token);
+                            var elapsed = DateTime.UtcNow - iterationStart;
+                            var remainingDelay = 1000 - (int)elapsed.TotalMilliseconds;
+                            if (remainingDelay > 0)
+                            {
+                                await Task.Delay(remainingDelay, state.TokenSource.Token);
+                            }
                         }
                         Console.WriteLine(i + " seconds left ,phase " + room.Phase);
                     }
 
-
+                    var confirmLastInformationRequest = await grpcAdapter.Do<bool, ConfirmLastInformationRequestModel>(new ConfirmLastInformationRequestModel { RequestModel = room.Serialize() });
 
                     // Reset for the next player/group
                     state.RemainingSeconds = seconds;

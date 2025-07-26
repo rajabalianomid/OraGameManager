@@ -14,6 +14,7 @@ namespace Ora.GameManaging.Mafia.Data
         public string? CurrentPhase { get; set; } = default!;
         public bool IsProcessed { get; set; }
         public string? Result { get; set; }
+        public bool Force { get; set; }
 
         public int AbilityId { get; set; }
         public AbilityEntity Ability { get; set; } = null!; // Required, but initialized to null for EF Core compatibility

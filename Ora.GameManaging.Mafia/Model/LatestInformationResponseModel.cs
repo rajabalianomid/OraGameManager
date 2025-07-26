@@ -28,6 +28,7 @@ namespace Ora.GameManaging.Mafia.Model
         public List<BasePlayerInfo> DeadPlayers { get; set; } = [];
         public List<BasePlayerInfo> ActingOn { get; set; } = [];
         public List<LastCardChanceModel> Cards { get; set; } = [];
+        public List<string> Roles { get; set; } = [];
         public bool HasVideo { get; set; }
     }
 }

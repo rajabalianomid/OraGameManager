@@ -69,7 +69,7 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
             // Find the RoleStatus for the current turn player
             var lastPartUserId = model.TargetPlayerId?.Split(":").Last();
             var roleStatusEntity = allRoleStatuses
-                .FirstOrDefault(rs => rs.UserId == lastPartUserId && rs.RoleName == targetPlayer.Role);
+                .FirstOrDefault(rs => rs.UserId == lastPartUserId);
 
             //Map to RoleStatusModel
             RoleStatusModel? roleStatus = null;
@@ -105,7 +105,7 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
             abilities = abilities?.Where(w => !actionHistories.Any(a => a.AbilityId == w.Id)).ToList();
 
             var phaseService = phaseServiceFactory.GetPhaseService(phase);
-            var preparingPhase = await phaseService.Preparing(model.AppId, model.RoomId, phase, lastPartUserId ?? string.Empty);
+            var preparingPhase = await phaseService.Preparing(model.AppId, model.RoomId, phase, lastPartUserId ?? string.Empty, model.Round, model.IsYourTurn);
 
             var response = new LatestInformationResponseModel();
 
@@ -125,7 +125,8 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
                         DeadPlayers = [.. model.Players.Where(w => !w.IsAlive).Select(s => (BasePlayerInfo)s)],
                         ActingOn = model.IsYourTurn ? [.. model.Players.Where(w => preparingPhase.ActingOn.Any(a => a == w.LastPartUserId)).Select(s => (BasePlayerInfo)s)] : [],
                         HasVideo = preparingPhase.HasVideo,
-                        Cards = model.IsYourTurn ? preparingPhase.Cards : []
+                        Cards = model.IsYourTurn ? preparingPhase.Cards : [],
+                        Roles = preparingPhase.Roles
                     },
                     ExtraInfo = new ExtraInfoDetailsModel
                     {
@@ -141,6 +142,27 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
 
             return response;
         }
+        public async Task<bool> ConfirmPrepareLatestInformationAsync(string requestModel)
+        {
+            // Deserialize the request model from JSON
+            var model = JsonSerializer.Deserialize<LatestInformationRequestModel>(requestModel)
+                ?? throw new ArgumentNullException(nameof(requestModel), "Request model cannot be null");
+
+            if (model.TargetPlayersId.Count > 1)
+                throw new ArgumentException("TargetPlayersId should contain only one player.", nameof(requestModel));
+
+            // Find the current turn player
+            var targetPlayer = model.Players.FirstOrDefault(w => w.UserId == model.TargetPlayerId)
+                ?? throw new ArgumentException($"Player with UserId {model.TargetPlayerId} not found in the request model.", nameof(requestModel));
+
+            var lastPartUserId = model.TargetPlayerId?.Split(":").Last();
+            var phase = model.Phase;
+
+            var phaseService = phaseServiceFactory.GetPhaseService(phase);
+            await phaseService.PreparingCompelete(model.AppId, model.RoomId, phase, lastPartUserId ?? string.Empty, model.Round);
+            return true;
+        }
+
         public async Task MakeEmptyOfChallengeAsync(string appId, string roomId)
         {
             // Fetch all role statuses for the specified application and room

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Ora.GameManaging.Mafia.Data;
 
@@ -11,9 +12,11 @@ using Ora.GameManaging.Mafia.Data;
 namespace Ora.GameManaging.Mafia.Data.Migrations
 {
     [DbContext(typeof(MafiaDbContext))]
-    partial class MafiaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250725085933_ActionHistoryForceAction")]
+    partial class ActionHistoryForceAction
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -187,14 +190,6 @@ namespace Ora.GameManaging.Mafia.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<int?>("ParentId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Pattern")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
                     b.Property<string>("RelatedPhase")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
@@ -203,8 +198,6 @@ namespace Ora.GameManaging.Mafia.Data.Migrations
                         .HasColumnType("bit");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("ParentId");
 
                     b.ToTable("Abilities", (string)null);
                 });
@@ -549,16 +542,6 @@ namespace Ora.GameManaging.Mafia.Data.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Ora.GameManaging.Mafia.Data.AbilityEntity", b =>
-                {
-                    b.HasOne("Ora.GameManaging.Mafia.Data.AbilityEntity", "Parent")
-                        .WithMany("Children")
-                        .HasForeignKey("ParentId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
-                    b.Navigation("Parent");
-                });
-
             modelBuilder.Entity("Ora.GameManaging.Mafia.Data.GameActionHistoryEntity", b =>
                 {
                     b.HasOne("Ora.GameManaging.Mafia.Data.AbilityEntity", "Ability")
@@ -591,8 +574,6 @@ namespace Ora.GameManaging.Mafia.Data.Migrations
 
             modelBuilder.Entity("Ora.GameManaging.Mafia.Data.AbilityEntity", b =>
                 {
-                    b.Navigation("Children");
-
                     b.Navigation("GameActions");
 
                     b.Navigation("RoleStatusesAbilities");

@@ -56,15 +56,11 @@ function Playground() {
                         </div>
                     </div>
                 </div>
-
                 {/* Main Content */}
                 <div className="col-md-9 col-lg-8 col-xl-10">
                     <div className="content">
-                        <ActionArea
-                            players={turnData?.actingOn || []}
-                            cards={turnData?.cards || []}
-                            roomId={roomId ?? ""}
-                        />
+                        <h3>Total Cards: {turnData?.cards.length}</h3>
+                        <ActionArea roomId={roomId ?? ""} />
                     </div>
                     <VideoCall />
                 </div>

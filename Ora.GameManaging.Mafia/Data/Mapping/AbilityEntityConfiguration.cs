@@ -30,9 +30,15 @@ namespace Ora.GameManaging.Mafia.Data.Mapping
 
             builder.Property(e => e.RelatedPhase).HasMaxLength(50);
 
+            builder.Property(e => e.Pattern).HasMaxLength(200);
+
             builder.HasMany(e => e.GameActions).WithOne(w => w.Ability)
                 .HasForeignKey(f => f.AbilityId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            builder.HasMany(e => e.Children).WithOne(w => w.Parent)
+                .HasForeignKey(f => f.ParentId)
+                .OnDelete(DeleteBehavior.NoAction);
         }
     }
 }

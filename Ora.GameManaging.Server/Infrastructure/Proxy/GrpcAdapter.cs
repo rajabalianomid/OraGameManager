@@ -9,28 +9,37 @@ public class GrpcAdapter(GrpcClientFactory clientFactory)
 {
     const string clientName = "Mafia_Adapter";
 
-    public async Task<TOut> Do<TOut, TIn>(TIn model) where TIn : AdapterModel
+    public async Task<TOut?> Do<TOut, TIn>(TIn model) where TIn : AdapterModel
     {
-        var client = clientFactory.CreateClient<AdapterGrpcClient>(clientName) ?? throw new InvalidOperationException($"Failed to create gRPC client with name '{clientName}'.");
-        var response = await client.RunAsync(new AdapterRequest
+        try
         {
-            Action = model.ActionName,
-            ModelJson = JsonSerializer.Serialize(model),
-            TypeName = model.TypeName
-        });
+            var client = clientFactory.CreateClient<AdapterGrpcClient>(clientName) ?? throw new InvalidOperationException($"Failed to create gRPC client with name '{clientName}'.");
+            var response = await client.RunAsync(new AdapterRequest
+            {
+                Action = model.ActionName,
+                ModelJson = JsonSerializer.Serialize(model),
+                TypeName = model.TypeName
+            });
 
-        // Assuming TOut is deserialized from the response. Adjust as needed.
-        return JsonSerializer.Deserialize<TOut>(response.DataJson ?? string.Empty, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
-               ?? throw new InvalidOperationException("Failed to deserialize the response.");
+            // Assuming TOut is deserialized from the response. Adjust as needed.
+            return JsonSerializer.Deserialize<TOut>(response.DataJson ?? string.Empty, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+                   ?? throw new InvalidOperationException("Failed to deserialize the response.");
+        }
+        catch (Exception) { }
+        return default;
     }
     public async Task Do<TIn>(TIn model) where TIn : AdapterModel
     {
-        var client = clientFactory.CreateClient<AdapterGrpcClient>(clientName) ?? throw new InvalidOperationException($"Failed to create gRPC client with name '{clientName}'.");
-        _ = await client.RunAsync(new AdapterRequest
+        try
         {
-            Action = model.ActionName,
-            ModelJson = JsonSerializer.Serialize(model),
-            TypeName = model.TypeName
-        });
+            var client = clientFactory.CreateClient<AdapterGrpcClient>(clientName) ?? throw new InvalidOperationException($"Failed to create gRPC client with name '{clientName}'.");
+            _ = await client.RunAsync(new AdapterRequest
+            {
+                Action = model.ActionName,
+                ModelJson = JsonSerializer.Serialize(model),
+                TypeName = model.TypeName
+            });
+        }
+        catch (Exception) { }
     }
 }

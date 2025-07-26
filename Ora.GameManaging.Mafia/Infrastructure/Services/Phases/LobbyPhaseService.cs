@@ -16,6 +16,13 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services.Phases
         }
         public override async Task<List<RoleStatusEntity>> ProcessTurn(List<RoleStatusEntity> roleStatuses, string phase, float round)
         {
+            var outOfTurn = roleStatuses.Where(w => w.Turn < 0).ToList();
+            if (outOfTurn.Count > 0)
+            {
+                outOfTurn.ForEach(f => f.Turn = f.Turn * -1);
+                await dbContext.SaveChangesAsync();
+            }
+
             roleStatuses.ForEach(rs =>
             {
                 rs.Turn = 0;

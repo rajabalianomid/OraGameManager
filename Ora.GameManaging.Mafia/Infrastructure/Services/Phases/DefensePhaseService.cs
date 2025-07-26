@@ -12,9 +12,9 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services.Phases
             var result = await base.Prepared(appId, roomId, phaseStatus);
             return result;
         }
-        public override async Task<PreparingPhaseModel> Preparing(string appId, string roomId, string phaseStatus, string playerId)
+        public override async Task<PreparingPhaseModel> Preparing(string appId, string roomId, string phaseStatus, string playerId, int round, bool isTurn)
         {
-            var result = await base.Preparing(appId, roomId, phaseStatus, playerId);
+            var result = await base.Preparing(appId, roomId, phaseStatus, playerId, round, isTurn);
             result.HasVideo = true; // Enable video for Talk phase
             return result;
         }

@@ -24,6 +24,7 @@ namespace Ora.GameManaging.Mafia.Data
         public bool Selected { get; set; }
         public bool ActingOnMe { get; set; }
         public bool Lock { get; set; }
+        public bool Reveal { get; set; }
 
         public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
 
