@@ -97,7 +97,7 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services.Phases
                         {
                             var globals = new ScriptGlobals { Abilities = abilities, Actions = actions, RoleStatuses = roleStatuses, Action = action, PhaseModel = preparingPhaseModel };
 
-                            if (action.Ability.Force == force || action.Ability.Parent?.Force == force)
+                            if (action.Ability.PreparingPhase == force)
                             {
                                 action.Result = await CSharpScript.EvaluateAsync<string>(
                                                                 action.Ability.Expression, ScriptOptions.Default

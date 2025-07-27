@@ -30,5 +30,6 @@ namespace Ora.GameManaging.Mafia.Model
         public List<LastCardChanceModel> Cards { get; set; } = [];
         public List<string> Roles { get; set; } = [];
         public bool HasVideo { get; set; }
+        public string SelectedAbility { get; set; } = string.Empty;
     }
 }

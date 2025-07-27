@@ -126,6 +126,7 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
                         ActingOn = model.IsYourTurn ? [.. model.Players.Where(w => preparingPhase.ActingOn.Any(a => a == w.LastPartUserId)).Select(s => (BasePlayerInfo)s)] : [],
                         HasVideo = preparingPhase.HasVideo,
                         Cards = model.IsYourTurn ? preparingPhase.Cards : [],
+                        SelectedAbility = preparingPhase.SelectedAbility,
                         Roles = preparingPhase.Roles
                     },
                     ExtraInfo = new ExtraInfoDetailsModel

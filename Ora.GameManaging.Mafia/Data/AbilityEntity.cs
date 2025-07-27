@@ -12,7 +12,8 @@
         public bool IsCard { get; set; }
         public string? Icon { get; set; }
         public bool? SelfAct { get; set; }
-        public bool Force { get; set; }
+        public bool PreparingPhase { get; set; }
+        public bool ForceAction { get; set; }
         public int? ParentId { get; set; }
         public required string Pattern { get; set; } = string.Empty;
 

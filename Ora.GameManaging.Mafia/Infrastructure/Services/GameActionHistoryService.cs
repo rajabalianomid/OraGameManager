@@ -37,9 +37,11 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
                 abilityName = foundCards.Where(w => w.Index == cardIndex).Select(s => s.Value.Key).FirstOrDefault() ?? string.Empty;
                 isCard = true;
             }
+            //if (isCard == false)
+            //    isCard = await dbContext.AbilityEntities.AnyAsync(w => w.Name.Equals(abilityName) && w.IsCard == true);
 
             var foundAbility = await dbContext.AbilityEntities
-                               .FirstOrDefaultAsync(a => a.Name == abilityName && a.RelatedPhase == phase && (isCard == true || a.RoleStatusesAbilities.Any(a => a.RoleStatus.UserId == userId)))
+                               .FirstOrDefaultAsync(a => a.Name == abilityName && a.RelatedPhase == phase && (isCard == true || a.IsCard == true || a.RoleStatusesAbilities.Any(a => a.RoleStatus.UserId == userId)))
                                ?? throw new Exception($"Ability '{abilityName}' not found for user '{userId}' in phase '{phase}'.");
 
             // Check if a similar GameActionHistory already exists
@@ -53,6 +55,11 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
 
             if (existingAction != null)
             {
+                if (string.IsNullOrEmpty(existingAction.TargetUserId) && !string.IsNullOrEmpty(targetUserId))
+                {
+                    existingAction.TargetUserId = targetUserId;
+                    await dbContext.SaveChangesAsync();
+                }
                 // Optionally, you can update or skip
                 return;
             }
@@ -69,7 +76,7 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
                 ActionTime = DateTime.UtcNow,
                 Phase = phase.GetNextPhaseName(),
                 CurrentPhase = phase,
-                Force = foundAbility.Force,
+                Force = foundAbility.ForceAction,
                 ActorRole = actorRole ?? "Unknown",
             };
             // Add the action to the database
@@ -106,7 +113,7 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services
                     ActionTime = DateTime.UtcNow,
                     Phase = phase.GetNextPhaseName(),
                     CurrentPhase = phase,
-                    Force = ability.Force,
+                    Force = ability.PreparingPhase,
                     ActorRole = foundActionHistory.ActorRole ?? "Unknown",
                 };
                 // Add the action to the database

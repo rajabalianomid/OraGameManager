@@ -53,12 +53,12 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services.Phases
                 if (actionHistory == null)
                 {
                     cardsModel = [.. foundRemainingCards.Select(s => new LastCardChanceModel
-                {
-                    Id = s.Value.Id,
-                    Name = $"Card {(s.Index)}",
-                    Description = string.Empty,
-                    Icon = string.Empty
-                })];
+                    {
+                        Id = s.Value.Id,
+                        Name = $"Card {(s.Index)}",
+                        Description = string.Empty,
+                        Icon = string.Empty
+                    })];
                 }
                 else if (actionHistory != null && actionHistory.TargetUserId == string.Empty)
                 {
@@ -75,6 +75,7 @@ namespace Ora.GameManaging.Mafia.Infrastructure.Services.Phases
                         SelfAct = c.SelfAct ?? false,
                         ShowFront = true
                     })];
+                    preparingModel.SelectedAbility = actionHistory.Ability.Name;
                 }
 
                 if (actionHistory != null && actionHistory.TargetUserId == string.Empty)

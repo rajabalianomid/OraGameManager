@@ -16,4 +16,5 @@ export interface LatestInformationModel {
     roles: string[];
     actingOn: PlayerModel[];
     hasVideo: boolean;
+    selectedAbility: string;
 }
